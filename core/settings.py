@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "colorfield",
     'goods',
     'users',
+    'cart',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
