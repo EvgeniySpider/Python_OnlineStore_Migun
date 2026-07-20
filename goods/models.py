@@ -30,3 +30,24 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Stock(models.Model):
+    product = models.OneToOneField(
+        Product,
+        on_delete=models.CASCADE,
+        primary_key=True, # Указываем Django НЕ создавать стандартное поле id
+        related_name='stock',
+        verbose_name='Товар'
+    )
+    quantity = models.PositiveIntegerField(
+        default=0, 
+        verbose_name='Количество на складе'
+    )
+
+    class Meta:
+        verbose_name = 'Остаток на складе'
+        verbose_name_plural = 'Остатки на складе'
+
+    def __str__(self):
+        return f"{self.product.name} — {self.quantity} шт."
