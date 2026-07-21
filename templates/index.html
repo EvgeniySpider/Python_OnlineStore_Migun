@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %}Каталог товаров — Интернет-магазин{% endblock %}
+
+{% block content %}
+    <h1>Каталог товаров</h1>
+
+    {% if products %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px;">
+            {% for product in products %}
+                <article style="border: 1px solid #ccc; padding: 15px; border-radius: 8px;">
+                    <h3>{{ product.name }}</h3>
+                    <p>Категория: {{ product.category.name }}</p>
+                    <p><strong>Цена: {{ product.price }} руб.</strong></p>
+                    <p>В наличии: {{ product.quantity }} шт.</p>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>Товаров пока нет в базе данных.</p>
+    {% endif %}
+{% endblock %}
