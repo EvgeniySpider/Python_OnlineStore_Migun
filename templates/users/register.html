@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}Регистрация — Интернет-магазин{% endblock %}
+
+{% block content %}
+    <h2>Регистрация нового пользователя</h2>
+
+    <form method="post">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+            <div style="color: red;">
+                {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {{ form.as_p }}
+
+        <button type="submit">Зарегистрироваться</button>
+    </form>
+
+    {% comment %} <p style="margin-top: 15px;">
+        Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a>
+    </p> {% endcomment %}
+{% endblock %}
