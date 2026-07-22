@@ -4,6 +4,7 @@ from goods.models import Product
 from users.forms import CustomUserCreationForm
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.shortcuts import redirect
+from django.contrib.auth.views import LoginView
 
 
 class IndexView(ListView):
@@ -24,3 +25,11 @@ class SignUpView(UserPassesTestMixin, CreateView):
     def handle_no_permission(self):
         # Если пользователь УЖЕ залогинен — кидаем его на главную страницу
         return redirect('home')
+
+
+class CustomLoginView(LoginView):
+    template_name = 'users/login.html'
+    redirect_authenticated_user = True  # Если юзер УЖЕ залогинен, не пускаем его на форму входа
+
+    def get_success_url(self):
+        return reverse_lazy('home')  # Куда отправить после успешного входа
