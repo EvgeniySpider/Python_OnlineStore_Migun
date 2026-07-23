@@ -133,3 +133,4 @@ STATIC_ROOT = BASE_DIR / 'static'
 
 # Authentication settings
 AUTH_USER_MODEL = 'users.User'
+LOGOUT_REDIRECT_URL = 'home'  # Перенаправляем на главную страницу после выхода
