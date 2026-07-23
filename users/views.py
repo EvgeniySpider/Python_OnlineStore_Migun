@@ -1,16 +1,9 @@
-from django.views.generic import CreateView, ListView
+from django.views.generic import CreateView
 from django.urls import reverse_lazy
-from goods.models import Product
 from users.forms import CustomUserCreationForm
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.shortcuts import redirect
 from django.contrib.auth.views import LoginView
-
-
-class IndexView(ListView):
-    model = Product
-    template_name = 'index.html'
-    context_object_name = 'products'  # Имя переменной в шаблоне
 
 
 class SignUpView(UserPassesTestMixin, CreateView):

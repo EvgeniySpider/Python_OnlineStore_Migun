@@ -12,7 +12,7 @@
                     <h3>{{ product.name }}</h3>
                     <p>Категория: {{ product.category.name }}</p>
                     <p><strong>Цена: {{ product.price }} руб.</strong></p>
-                    <p>В наличии: {{ product.quantity }} шт.</p>
+                    <p>В наличии: {{ product.stock }}</p>
                 </article>
             {% endfor %}
         </div>
