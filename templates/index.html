@@ -23,6 +23,13 @@
         border-color: #4caf50; /* Подсвечиваем рамку зелёным */
         box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4); /* Добавляем мягкую тень */
     }
+
+    /* Поднимаем форму и кнопку над невидимой ссылкой */
+    .cart-form {
+        position: relative;
+        z-index: 2;
+        margin-top: 15px;
+    }
 </style>
 
 {% if products %}
@@ -46,6 +53,12 @@
                     {% endif %}
                 </p>
 
+                <!-- Форма отправки в корзину (поднята на z-index: 2) -->
+                <form action="{% url 'cart:add_to_cart' product.id %}" method="post" class="cart-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="quantity" value="1">
+                    <button type="submit" class="btn" style="cursor: pointer;">В корзину</button>
+                </form>
             </article>
         {% endfor %}
     </div>
