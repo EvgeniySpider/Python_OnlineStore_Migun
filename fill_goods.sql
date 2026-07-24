@@ -1,3 +1,13 @@
+-- №1
+INSERT INTO goods_category (id, name)
+VALUES 
+    (1, 'Электроника'),
+    (2, 'Бытовая химия'),
+    (3, 'Лекарственные препараты'),
+    (4, 'Пищевые продукты')
+ON CONFLICT (id) DO NOTHING;
+
+-- №2
 WITH inserted_products AS (
     INSERT INTO goods_product (name, description, price, image, category_id)
     VALUES
