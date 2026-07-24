@@ -5,18 +5,49 @@
 {% block content %}
     <h1>Каталог товаров</h1>
 
-    {% if products %}
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px;">
-            {% for product in products %}
-                <article style="border: 1px solid #ccc; padding: 15px; border-radius: 8px;">
-                    <h3>{{ product.name }}</h3>
-                    <p>Категория: {{ product.category.name }}</p>
-                    <p><strong>Цена: {{ product.price }} руб.</strong></p>
-                    <p>В наличии: {{ product.stock }}</p>
-                </article>
-            {% endfor %}
-        </div>
-    {% else %}
-        <p>Товаров пока нет в базе данных.</p>
-    {% endif %}
+    <!-- Стили для эффекта при наведении -->
+<style>
+    .product-card {
+        position: relative;
+        border: 1px solid #444;
+        padding: 20px;
+        border-radius: 8px;
+        background-color: #1e1e1e;
+        /* Плавность всех изменений на 0.25 секунды */
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+
+    /* Анимация при наведении мышкой */
+    .product-card:hover {
+        transform: translateY(-5px); /* Приподнимаем карточку на 5px вверх */
+        border-color: #4caf50; /* Подсвечиваем рамку зелёным */
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4); /* Добавляем мягкую тень */
+    }
+</style>
+
+{% if products %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px;">
+        {% for product in products %}
+            <!-- Навесили класс product-card -->
+            <article class="product-card">
+                
+                <!-- Невидимая ссылка на всю карточку -->
+                <a href="{% url 'product_detail' product.id %}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"></a>
+
+                <h4 style="margin-top: 0; color: #fff;">{{ product.name }}</h4>
+                <p style="color: #aaa; font-size: 14px;">Категория: {{ product.category.name }}</p>
+                <p style="color: #4caf50;"><strong>Цена: {{ product.price }} руб.</strong></p>
+                <p style="color: #aaa; font-size: 14px;">
+                    В наличии: 
+                    {% if product.stock %}
+                        {{ product.stock.quantity }} шт.
+                    {% else %}
+                        0 шт.
+                    {% endif %}
+                </p>
+
+            </article>
+        {% endfor %}
+    </div>
+{% endif %}
 {% endblock %}

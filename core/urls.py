@@ -21,5 +21,6 @@ from goods.views import IndexView
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', IndexView.as_view(), name='home'), 
-    path('auth/', include('users.urls'))
+    path('auth/', include('users.urls')),
+    path('product/', include('goods.urls'))
 ]
