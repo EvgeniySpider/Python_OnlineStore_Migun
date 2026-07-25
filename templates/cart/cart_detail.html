@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Корзина{% endblock %}
+
+{% block content %}
+
+{% if cart_items %}
+    {% for cart_item in cart_items %}
+    <div>
+        [<span>№{{ forloop.counter }}</span>]
+        <span>Время и дата создания заказа: {{ cart_item.created_at | date }}
+        {{ cart_item.created_at | time }}</span> |
+        Имя товара: {{ cart_item.product.name }} |
+        Описание товара: {{ cart_item.product.description }} |
+        Количество: {{ cart_item.quantity }}
+        </div> 
+
+        <br>
+    {% endfor %}
+
+{% endif %}
+
+{% endblock %}

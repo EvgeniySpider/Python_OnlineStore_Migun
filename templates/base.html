@@ -10,8 +10,8 @@
 <body>
     <header>
         <nav>
-            🛒 Корзина (<span class="cart-badge">{{ cart_total_quantity }}</span>)
-            <a href="{% url 'home' %}">Главная</a>
+            <a href="{% url 'home' %}"> Главная</a>
+            <a href="{% url 'cart:cart_detail' %}">🛒 Корзина ({{ cart_total_quantity }})</a>
 
             {% if user.is_authenticated %}
                 <span>Привет, {{ user.username }}!</span>

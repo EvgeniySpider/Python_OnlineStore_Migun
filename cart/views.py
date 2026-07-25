@@ -3,6 +3,7 @@ from django.shortcuts import render
 # Create your views here.
 from django.shortcuts import get_object_or_404, redirect
 from django.views import View
+from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from goods.models import Product
 from .models import Cart, CartItem
@@ -29,3 +30,18 @@ class AddToCartView(LoginRequiredMixin, View):
             
         # 4. Перенаправляем пользователя (например, в саму корзину или обратно)
         return redirect('home')
+
+
+class ShowCartView(LoginRequiredMixin, ListView):
+    model = CartItem
+    template_name = 'cart/cart_detail.html'
+    context_object_name = 'cart_items'
+
+    def get_queryset(self):
+        return (CartItem.objects.filter(cart_id=self.request.user.id)
+                .select_related('product'))
+
+
+    
+    
+
