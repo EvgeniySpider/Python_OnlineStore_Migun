@@ -4,7 +4,7 @@
 
 {% block content %}
 
-{% if cart_items %}
+
     {% for cart_item in cart_items %}
     <div>
         [<span>№{{ forloop.counter }}</span>]
@@ -16,8 +16,8 @@
         </div> 
 
         <br>
+    {% empty %}
+    <h3>Корзина пуста</h3>
     {% endfor %}
-
-{% endif %}
 
 {% endblock %}
