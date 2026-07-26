@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.views import View
 from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from goods.models import Product
+from goods.models import Product, Stock
 from .models import Cart, CartItem
 
 
@@ -49,4 +49,21 @@ class CartItemDeleteView(LoginRequiredMixin, View):
         
 
         cart_item.delete()
+        return redirect('cart:cart_detail')
+
+
+class CartItemUpdateQuantityView(LoginRequiredMixin, View):
+    def post(self, request, item_id, action):
+        cart_item = get_object_or_404(CartItem, id=item_id, cart_id=request.user.id)
+
+        if action == 'increase':
+            stock = get_object_or_404(Stock, product_id=cart_item.product_id)
+            if stock.quantity > cart_item.quantity:
+                cart_item.quantity += 1
+            
+        elif action == 'decrease':
+            if cart_item.quantity > 1:
+                cart_item.quantity -= 1
+
+        cart_item.save()
         return redirect('cart:cart_detail')

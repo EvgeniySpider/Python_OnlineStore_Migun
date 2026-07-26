@@ -116,6 +116,18 @@
 
             <div class="cart-footer">
                 <span class="quantity-badge">Количество: <strong>{{ cart_item.quantity }} шт.</strong></span>
+                
+                {% if cart_item.quantity > 1 %}
+                <form action='{% url "cart:quantity_item_update" cart_item.id "decrease" %}' method='post'>
+                    {% csrf_token %}
+                    <button><strong>-</strong></button>
+                </form>
+                {% endif %}
+
+                <form action='{% url "cart:quantity_item_update" cart_item.id "increase" %}' method='post'>
+                    {% csrf_token %}
+                    <button><strong>+</strong></button>
+                </form>
 
                 <form action='{% url "cart:cart_item_delete" cart_item.id %}' method='post' style="margin: 0;">
                     {% csrf_token %}
