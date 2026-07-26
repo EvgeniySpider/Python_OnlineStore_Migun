@@ -10,6 +10,53 @@
         padding: 20px;
     }
 
+    /* Оболочка для органов управления количеством */
+    .quantity-control-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+    }
+
+    /* Ряд: [Кнопка -] [Количество] [Кнопка +] */
+    .quantity-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* Стилизация кнопок плюс и минус */
+    .btn-qty {
+        background-color: #3a3a3a;
+        color: #fff;
+        border: 1px solid #4f4f4f;
+        border-radius: 4px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.2s ease;
+    }
+
+    .btn-qty:hover:not(:disabled) {
+        background-color: #4a4a4a;
+    }
+
+    .btn-qty:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    /* Подпись ограничения под кнопками */
+    .limit-warning {
+        color: #ff9800;
+        font-size: 11px;
+        text-align: center;
+    }
+
     .cart-title {
         color: #ffffff;
         font-size: 28px;
@@ -93,6 +140,12 @@
         background-color: #b71c1c;
     }
 
+    /* Стили для неактивных кнопок */
+    button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
     .empty-cart {
         text-align: center;
         color: #888;
@@ -102,6 +155,18 @@
 </style>
 
 <div class="cart-container">
+
+    <!-- БЛОК ВЫВОДА СООБЩЕНИЙ -->
+    {% if messages %}
+        <div class="messages-container">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
     <h1 class="cart-title">Ваша корзина</h1>
 
     {% for cart_item in cart_items %}
@@ -115,24 +180,46 @@
             <p class="product-description">{{ cart_item.product.description }}</p>
 
             <div class="cart-footer">
-                <span class="quantity-badge">Количество: <strong>{{ cart_item.quantity }} шт.</strong></span>
                 
-                {% if cart_item.quantity > 1 %}
-                <form action='{% url "cart:quantity_item_update" cart_item.id "decrease" %}' method='post'>
-                    {% csrf_token %}
-                    <button><strong>-</strong></button>
-                </form>
-                {% endif %}
+                <!-- ГРУППА УПРАВЛЕНИЯ КОЛИЧЕСТВОМ -->
+                <div class="quantity-control-group">
+                    <div class="quantity-controls">
+                        <!-- Кнопка МИНУС -->
+                        <form action='{% url "cart:quantity_item_update" cart_item.id "decrease" %}' method='post' style="margin: 0;">
+                            {% csrf_token %}
+                            <button type='submit' class="btn-qty" {% if cart_item.quantity <= 1 %}disabled{% endif %}>
+                                <strong>-</strong>
+                            </button>
+                        </form>
 
-                <form action='{% url "cart:quantity_item_update" cart_item.id "increase" %}' method='post'>
-                    {% csrf_token %}
-                    <button><strong>+</strong></button>
-                </form>
+                        <!-- Число товара -->
+                        <span class="quantity-badge">
+                            Количество: <strong>{{ cart_item.quantity }} шт.</strong>
+                        </span>
 
+                        <!-- Кнопка ПЛЮС -->
+                        <form action='{% url "cart:quantity_item_update" cart_item.id "increase" %}' method='post' style="margin: 0;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-qty" {% if cart_item.quantity >= cart_item.product.stock.quantity %}disabled{% endif %}>
+                                <strong>+</strong>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Текст с ограничением под кнопками -->
+                    {% if cart_item.quantity <= 1 %}
+                        <span class="limit-warning">Мин. количество в корзине: 1</span>
+                    {% elif cart_item.quantity >= cart_item.product.stock.quantity %}
+                        <span class="limit-warning">Достигнут лимит на складе</span>
+                    {% endif %}
+                </div>
+
+                <!-- КНОПКА УДАЛЕНИЯ -->
                 <form action='{% url "cart:cart_item_delete" cart_item.id %}' method='post' style="margin: 0;">
                     {% csrf_token %}
                     <button type="submit" class="delete-btn">Удалить из корзины</button>
                 </form>
+
             </div>
         </div>
     {% empty %}

@@ -7,6 +7,7 @@ from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from goods.models import Product, Stock
 from .models import Cart, CartItem
+from django.contrib import messages
 
 
 class AddToCartView(LoginRequiredMixin, View):
@@ -60,10 +61,15 @@ class CartItemUpdateQuantityView(LoginRequiredMixin, View):
             stock = get_object_or_404(Stock, product_id=cart_item.product_id)
             if stock.quantity > cart_item.quantity:
                 cart_item.quantity += 1
+            else:
+                messages.warning(request, f'На складе больше нет товара \
+                "{cart_item.product.name}". Доступно всего: {stock.quantity} шт.')
             
         elif action == 'decrease':
             if cart_item.quantity > 1:
                 cart_item.quantity -= 1
+            else:
+                messages.warning(request, 'Минимальное количество товара в корзине — 1 шт.')
 
         cart_item.save()
         return redirect('cart:cart_detail')
