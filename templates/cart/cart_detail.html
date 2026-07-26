@@ -15,6 +15,13 @@
         Количество: {{ cart_item.quantity }}
         </div> 
 
+
+        <form action='{% url "cart:cart_item_delete" cart_item.id %}' method='post'>
+            {% csrf_token %}
+            <button type="submit">Удалить из корзины</button>
+        </form>
+
+
         <br>
     {% empty %}
     <h3>Корзина пуста</h3>

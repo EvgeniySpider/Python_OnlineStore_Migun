@@ -42,6 +42,11 @@ class ShowCartView(LoginRequiredMixin, ListView):
                 .select_related('product'))
 
 
-    
-    
+class CartItemDeleteView(LoginRequiredMixin, View):
+    def post(self, request, item_id):
+        # Достаем позицию из корзины, проверяя, что она принадлежит ИМЕННО ТЕКУЩЕМУ юзеру
+        cart_item = get_object_or_404(CartItem, id=item_id, cart_id=request.user.id)
+        
 
+        cart_item.delete()
+        return redirect('cart:cart_detail')
