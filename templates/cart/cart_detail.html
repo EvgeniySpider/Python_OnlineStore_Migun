@@ -226,6 +226,9 @@
     {% empty %}
         <h3 class="empty-cart">Корзина пуста 🛒</h3>
     {% endfor %}
+    
+    {% if cart_items %}
     <a href='{% url "order_create" %}'>Оформить заказ</a>
+    {% endif %}
 </div>
 {% endblock %}
