@@ -222,8 +222,10 @@
 
             </div>
         </div>
+        
     {% empty %}
         <h3 class="empty-cart">Корзина пуста 🛒</h3>
     {% endfor %}
+    <a href='{% url "order_create" %}'>Оформить заказ</a>
 </div>
 {% endblock %}
