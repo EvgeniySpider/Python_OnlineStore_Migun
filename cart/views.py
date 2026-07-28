@@ -12,24 +12,36 @@ from django.contrib import messages
 
 class AddToCartView(LoginRequiredMixin, View):
     def post(self, request, product_id):
-        # 1. Получаем товар или 404
+
+        stock = get_object_or_404(Stock, product_id=product_id)
         product = get_object_or_404(Product, id=product_id)
 
-        # 2. Берем или создаем корзину для текущего юзера
-        cart, _ = Cart.objects.get_or_create(user=request.user)
+        if stock.quantity <= 0:
+            messages.error(
+                request,
+                f'Товара "{product.name}" на складе сейчас нет'
+            )
+            return redirect('home')
 
-        # 3. Ищем товар в корзине или создаем
+        cart, _ = Cart.objects.get_or_create(user=request.user)
+        
         cart_item, created = CartItem.objects.get_or_create(
             cart=cart, 
             product=product
         )
 
         if not created:
+            if cart_item.quantity >= stock.quantity:
+                messages.error(
+                    request,
+                    f'Товар "{product.name}" закончился на складе, всего {stock.quantity} шт'
+                )
+                return redirect('home')
+
             # Если товар уже был в корзине — увеличиваем количество
             cart_item.quantity += 1
             cart_item.save()
-            
-        # 4. Перенаправляем пользователя (например, в саму корзину или обратно)
+
         return redirect('home')
 
 

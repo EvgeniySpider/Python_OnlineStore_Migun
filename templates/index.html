@@ -5,40 +5,96 @@
 {% block content %}
     <h1>Каталог товаров</h1>
 
-    <!-- Стили для эффекта при наведении -->
+{% if messages %}
+    <div class="messages-container">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            <span>{{ message }}</span>
+        </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
 <style>
-    .product-card {
-        position: relative;
-        border: 1px solid #444;
-        padding: 20px;
-        border-radius: 8px;
-        background-color: #1e1e1e;
-        /* Плавность всех изменений на 0.25 секунды */
-        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-    }
+/* 1. Возвращаем карточкам позиционирование, чтобы ссылка не вылетала на весь экран */
+.product-card {
+    position: relative; /* Критично для position: absolute у невидимой ссылки! */
+    border: 1px solid #444;
+    padding: 20px;
+    border-radius: 8px;
+    background-color: #1e1e1e;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
 
-    /* Анимация при наведении мышкой */
-    .product-card:hover {
-        transform: translateY(-5px); /* Приподнимаем карточку на 5px вверх */
-        border-color: #4caf50; /* Подсвечиваем рамку зелёным */
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4); /* Добавляем мягкую тень */
-    }
+.product-card:hover {
+    transform: translateY(-5px);
+    border-color: #4caf50;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
 
-    /* Поднимаем форму и кнопку над невидимой ссылкой */
-    .cart-form {
-        position: relative;
-        z-index: 2;
-        margin-top: 15px;
+/* Форму и кнопку поднимаем над невидимой ссылкой карточки */
+.cart-form {
+    position: relative;
+    z-index: 2;
+    margin-top: 15px;
+}
+
+/* 2. Контейнер сообщений */
+.messages-container {
+    position: relative;
+    z-index: 10;
+    margin-bottom: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Базовый стиль алерта */
+.alert {
+    padding: 14px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border-left: 4px solid transparent;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.alert-error {
+    background-color: #2a1b1c;
+    color: #ff6b6b;
+    border-left-color: #ff5252;
+    border: 1px solid rgba(255, 82, 82, 0.2);
+}
+
+.alert-success {
+    background-color: #1b2a1e;
+    color: #81c784;
+    border-left-color: #4caf50;
+    border: 1px solid rgba(76, 175, 80, 0.2);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
     }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 </style>
 
 {% if products %}
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px;">
         {% for product in products %}
-            <!-- Навесили класс product-card -->
             <article class="product-card">
                 
-                <!-- Невидимая ссылка на всю карточку -->
+                <!-- Невидимая ссылка только в пределах этой карточки -->
                 <a href="{% url 'product_detail' product.id %}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"></a>
 
                 <h4 style="margin-top: 0; color: #fff;">{{ product.name }}</h4>
@@ -53,7 +109,7 @@
                     {% endif %}
                 </p>
 
-                <!-- Форма отправки в корзину (поднята на z-index: 2) -->
+                <!-- Форма отправки в корзину -->
                 <form action="{% url 'cart:add_to_cart' product.id %}" method="post" class="cart-form">
                     {% csrf_token %}
                     <input type="hidden" name="quantity" value="1">
