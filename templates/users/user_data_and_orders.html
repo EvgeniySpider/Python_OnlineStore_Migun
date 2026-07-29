@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль пользователя{% endblock title %}
+
+
+
+
+{% block content %}
+    <h3>Ваши персональные данные</h2>
+    <form method='post'>
+        {% csrf_token %}
+        {{ form.as_table }}
+        <br>
+        <button type='submit'>Подтвердить изменения</button>
+    </form>
+{% endblock content %}

@@ -24,6 +24,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', IndexView.as_view(), name='home'), 
     path('auth/', include('users.urls')),
+    path('user/', include('users.urls')),
     path('product/', include('goods.urls')),
     path('cart/', include('cart.urls')),
     path('order/', include('orders.urls'))
