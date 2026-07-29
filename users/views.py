@@ -31,26 +31,14 @@ class CustomLoginView(LoginView):
 
 class UserDataView(LoginRequiredMixin, View):
     def get(self, request):
-        user = request.user
-
-        initial_data = {
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-            'patronymic':user.patronymic,
-            'email':user.email,
-            'phone_number': user.phone_number,
-            'city': user.city,
-            'street': user.street,
-            'house_number': user.house_number,
-            'apartment_number': user.apartment_number,
-        }
-
-        form = UserDataForm(initial=initial_data)
-        context = {
-            'form': form
-        }
-
-        return render(request, 'users/user_data_and_orders.html', context)
+        form = UserDataForm(instance=request.user)
+        return render(request, 'users/user_data_and_orders.html', {'form': form})
 
     def post(self, request):
-        pass
+        # Передаем и данные из формы, и экземпляр, который надо обновить
+        form = UserDataForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            return redirect('user_profile')
+        
+        return render(request, 'users/user_data_and_orders.html', {'form': form})
