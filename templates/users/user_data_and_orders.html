@@ -3,8 +3,6 @@
 {% block title %}Профиль пользователя{% endblock title %}
 
 
-
-
 {% block content %}
     <h3>Ваши персональные данные</h2>
     <form method='post'>
@@ -13,4 +11,13 @@
         <br>
         <button type='submit'>Подтвердить изменения</button>
     </form>
+
+    {% for order in orders %}
+    <p>Заказ №{{ order.id }} — {{ order.get_status_display }}</p>
+    
+        {% for item in order.items.all %}
+            <p>{{ item.product.title }} — {{ item.quantity }} шт. х {{ item.price }} руб.</p>
+        {% endfor %}
+    {% endfor %}
+
 {% endblock content %}

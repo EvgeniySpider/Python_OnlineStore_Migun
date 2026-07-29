@@ -5,6 +5,7 @@ from users.forms import CustomUserCreationForm, UserDataForm
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import redirect, render
 from django.contrib.auth.views import LoginView
+from orders.models import Order
 
 
 class SignUpView(UserPassesTestMixin, CreateView):
@@ -32,7 +33,12 @@ class CustomLoginView(LoginView):
 class UserDataView(LoginRequiredMixin, View):
     def get(self, request):
         form = UserDataForm(instance=request.user)
-        return render(request, 'users/user_data_and_orders.html', {'form': form})
+        orders = Order.objects.filter(user=request.user).prefetch_related('items')
+        context = {
+            'form': form,
+            'orders':orders,
+        }
+        return render(request, 'users/user_data_and_orders.html', context)
 
     def post(self, request):
         # Передаем и данные из формы, и экземпляр, который надо обновить
