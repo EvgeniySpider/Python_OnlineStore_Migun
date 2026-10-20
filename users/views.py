@@ -6,6 +6,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import redirect, render
 from django.contrib.auth.views import LoginView
 from orders.models import Order
+from django.contrib import messages
 
 
 class SignUpView(UserPassesTestMixin, CreateView):
@@ -45,6 +46,9 @@ class UserDataView(LoginRequiredMixin, View):
         form = UserDataForm(request.POST, instance=request.user)
         if form.is_valid():
             form.save()
+            messages.success(request, 'Данные в профиле успешно обновлены!')
             return redirect('user_profile')
-        
-        return render(request, 'users/user_data_and_orders.html', {'form': form})
+
+        messages.error(request, 'Пожалуйста, исправьте ошибки в форме.')
+        orders = Order.objects.filter(user=request.user).prefetch_related('items__product')
+        return render(request, 'users/user_data_and_orders.html', {'form': form, 'orders': orders})
