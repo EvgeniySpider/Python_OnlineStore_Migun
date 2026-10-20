@@ -11,7 +11,7 @@ from django.contrib import messages
 
 
 class AddToCartView(LoginRequiredMixin, View):
-    def post(self, request, product_id):
+    def post(self, request, product_id: int):
 
         stock = get_object_or_404(Stock, product_id=product_id)
         product = get_object_or_404(Product, id=product_id)
@@ -52,21 +52,20 @@ class ShowCartView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         return (CartItem.objects.filter(cart_id=self.request.user.id)
-                .select_related('product'))
+                .select_related('product__stock'))
 
 
 class CartItemDeleteView(LoginRequiredMixin, View):
-    def post(self, request, item_id):
+    def post(self, request, item_id: int):
         # Достаем позицию из корзины, проверяя, что она принадлежит ИМЕННО ТЕКУЩЕМУ юзеру
         cart_item = get_object_or_404(CartItem, id=item_id, cart_id=request.user.id)
-        
 
         cart_item.delete()
         return redirect('cart:cart_detail')
 
 
 class CartItemUpdateQuantityView(LoginRequiredMixin, View):
-    def post(self, request, item_id, action):
+    def post(self, request, item_id: int, action: str):
         cart_item = get_object_or_404(CartItem, id=item_id, cart_id=request.user.id)
 
         if action == 'increase':

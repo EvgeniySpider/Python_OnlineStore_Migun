@@ -3,7 +3,6 @@ from django.views.generic import ListView, DetailView
 from goods.models import Product
 
 
-# Create your views here.
 class IndexView(ListView):
     template_name = 'index.html'
     context_object_name = 'products'  # Имя переменной в шаблоне

@@ -33,7 +33,7 @@ class CustomLoginView(LoginView):
 class UserDataView(LoginRequiredMixin, View):
     def get(self, request):
         form = UserDataForm(instance=request.user)
-        orders = Order.objects.filter(user=request.user).prefetch_related('items')
+        orders = Order.objects.filter(user=request.user).prefetch_related('items__product')
         context = {
             'form': form,
             'orders':orders,
