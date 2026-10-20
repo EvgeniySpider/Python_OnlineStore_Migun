@@ -7,6 +7,7 @@ from goods.models import Stock
 from orders.models import OrderItem
 from .forms import OrderModelForm
 from cart.models import CartItem
+from django.contrib import messages
 
 
 class OrderCreateView(LoginRequiredMixin, View):
@@ -41,6 +42,7 @@ class OrderCreateView(LoginRequiredMixin, View):
 
         # Проверка формы на валидность
         if not form.is_valid():
+            messages.error(request, 'Пожалуйста, исправьте ошибки в форме и повторите попытку')
             return render(request, 'orders/order_create.html', {'form': form})
 
         cart_items = CartItem.objects.filter(cart_id=user.id).select_related('product')
@@ -54,16 +56,19 @@ class OrderCreateView(LoginRequiredMixin, View):
                 stock_obj = Stock.objects.get(product_id=cart_item.product_id)
             except Stock.DoesNotExist:
                 form.add_error(None, f"Товар {cart_item.product.name} отсутствует на складе.")
+                messages.error(request, 'Заказ не был оформлен')
                 return render(request, 'orders/order_create.html', {'form': form})
             
             if cart_item.quantity > stock_obj.quantity:
                 form.add_error(None, f"Недостаточно товара '{cart_item.product.name}'. Доступно: {stock_obj.quantity} шт.")
+                messages.error(request, 'Заказ не был оформлен')
                 return render(request, 'orders/order_create.html', {'form': form})
+                
 
         order = form.save(commit=False)
         order.user = user # Вручную указываем id, всё остальное ввёл пользователь
         order.save()
-
+        messages.success(request, 'Заказ успешно оформлен')
         # Списываем товары, создаем OrderItem и чистим корзину
         for cart_item in cart_items:
             # Уменьшаем склад
