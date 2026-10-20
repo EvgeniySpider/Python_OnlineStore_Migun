@@ -152,6 +152,36 @@
         margin-top: 50px;
         font-size: 22px;
     }
+    /* Кнопка оформления заказа (ссылка под видом кнопки) */
+    .checkout-btn {
+        display: block;
+        width: 100%;
+        max-width: 280px;
+        margin: 30px auto 0 auto;
+        padding: 14px 24px;
+        background-color: #4caf50;
+        color: #ffffff !important;
+        text-align: center;
+        text-decoration: none !important; /* Убираем синее подчеркивание ссылки */
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        box-shadow: 0 1px 12px rgba(76, 175, 80, 0.3);
+        transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+    }
+
+    .checkout-btn:hover {
+        background-color: #43a047;
+        color: #ffffff !important;
+        text-decoration: none !important;
+        transform: translateY(-2px); /* Легкий эффект приподнимания */
+        box-shadow: 0 4px 10px rgba(76, 175, 80, 0.4);
+    }
+
+    .checkout-btn:active {
+        transform: translateY(0);
+}
 </style>
 
 <div class="cart-container">
@@ -217,7 +247,9 @@
     {% endfor %}
     
     {% if cart_items %}
-    <a href='{% url "order_create" %}'>Оформить заказ</a>
+        <a href="{% url 'order_create' %}" class="checkout-btn">
+            Оформить заказ →
+        </a>
     {% endif %}
 </div>
 {% endblock %}
