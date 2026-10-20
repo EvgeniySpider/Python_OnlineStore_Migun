@@ -68,6 +68,10 @@ class CartItemDeleteView(LoginRequiredMixin, View):
     def post(self, request, item_id: int):
         # Достаем позицию из корзины, проверяя, что она принадлежит ИМЕННО ТЕКУЩЕМУ юзеру
         cart_item = get_object_or_404(CartItem, id=item_id, cart_id=request.user.id)
+        messages.success(
+            request,
+            f'Товар {cart_item.product.name} удалён из корзины в количестве {cart_item.quantity} шт.'
+        )
 
         cart_item.delete()
         return redirect('cart:cart_detail')

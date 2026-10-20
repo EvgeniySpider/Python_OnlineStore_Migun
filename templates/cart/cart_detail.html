@@ -156,17 +156,6 @@
 
 <div class="cart-container">
 
-    <!-- БЛОК ВЫВОДА СООБЩЕНИЙ -->
-    {% if messages %}
-        <div class="messages-container">
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }}">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        </div>
-    {% endif %}
-
     <h1 class="cart-title">Ваша корзина</h1>
 
     {% for cart_item in cart_items %}
