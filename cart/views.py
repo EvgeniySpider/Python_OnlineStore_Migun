@@ -42,6 +42,15 @@ class AddToCartView(LoginRequiredMixin, View):
             cart_item.quantity += 1
             cart_item.save()
 
+            # Уведомление, если товар уже был и мы увеличили количество
+            messages.success(
+                request,
+                f'Товар "{product.name}" добавлен в корзину (всего: {cart_item.quantity} шт.)'
+            )
+        else:
+            # Уведомление при первом добавлении товара
+            messages.success(request, f'Товар "{product.name}" успешно добавлен в корзину!')
+
         return redirect('home')
 
 
