@@ -3,8 +3,9 @@ from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils.decorators import method_decorator
 from django.db import transaction
+from django.views.generic import ListView
 from goods.models import Stock
-from orders.models import OrderItem
+from orders.models import Order, OrderItem
 from .forms import OrderModelForm
 from cart.models import CartItem
 from django.contrib import messages
@@ -88,3 +89,17 @@ class OrderCreateView(LoginRequiredMixin, View):
         cart_items.delete()
 
         return redirect('home')
+
+
+class OrderListView(LoginRequiredMixin, ListView):
+    model = Order
+    template_name = 'orders/order_list.html'
+    context_object_name = 'orders'
+
+    def get_queryset(self):
+        # Достаем пользователя через self.request.user
+        return (
+            Order.objects.filter(user=self.request.user)
+            .prefetch_related('items__product')
+            .order_by('-created_at')
+        )
