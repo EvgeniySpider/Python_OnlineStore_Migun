@@ -50,6 +50,45 @@
     .order-product-row:last-child {
         border-bottom: none;
     }
+    /* Интерактивная строчка товара */
+    .order-product-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 10px; /* Добавили чуть отступа по бокам для красивого ховера */
+        border-bottom: 1px dashed #2a2a2a;
+        font-size: 0.95em;
+        border-radius: 4px;
+        transition: background-color 0.15s ease;
+    }
+
+    /* Подсветка строки при наведении */
+    .order-product-row:hover {
+        background-color: rgba(255, 255, 255, 0.03);
+    }
+
+    .order-product-row:last-child {
+        border-bottom: none;
+    }
+
+    /* Сама ссылка на товар */
+    .product-link {
+        color: #f0f0f0;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.15s ease;
+    }
+
+    /* Подсветка названия при наведении */
+    .product-link:hover {
+        color: #4caf50; /* Фирменный зеленый цвет */
+        text-decoration: underline;
+    }
+
+    .product-price {
+        color: #bbb;
+        font-weight: 500;
+    }
 </style>
 
         <h3>История заказов</h3>
@@ -61,15 +100,20 @@
                 </div>
                 
                 <ul class="order-products-list">
-                    {% for item in order.items.all %}
-                        <li class="order-product-row">
-                            <span>{{ item.product.name }} — {{ item.quantity }} шт.</span>
-                            <span class="product-price">{{ item.price }} руб.</span>
-                        </li>
-                    {% empty %}
-                        <li>В этом заказе нет товаров.</li>
-                    {% endfor %}
-                </ul>
+                {% for item in order.items.all %}
+                    <li class="order-product-row">
+                        <span>
+                            <a href="{% url 'product_detail' item.product.id %}" class="product-link">
+                                {{ item.product.name }}
+                            </a>
+                            — {{ item.quantity }} шт.
+                        </span>
+                        <span class="product-price">{{ item.price }} руб.</span>
+                    </li>
+                {% empty %}
+                    <li style="color: #777;">В этом заказе нет товаров.</li>
+                {% endfor %}
+            </ul>
             </div>
         {% empty %}
             <p style="color: #888;">У вас пока нет оформленных заказов.</p>
