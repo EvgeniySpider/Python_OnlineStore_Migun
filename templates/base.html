@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Интернет-магазин{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+<style>
+/* Фиксированный контейнер по центру сверху (как в Telegram) */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none; /* Чтобы плашка не мешала кликать сквозь неё, когда растворится */
+}
+
+/* Сам тост */
+.toast {
+    padding: 12px 24px;
+    border-radius: 20px; /* Округлая плашка а-ля Telegram */
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+
+    /* АНИМАЦИЯ: 3 секунды всего (0.3с появление -> висит -> 0.4с исчезновение) */
+    animation: toastAnimation 3s ease forwards;
+}
+
+/* Цвета плашек */
+.toast-success {
+    background-color: rgba(30, 45, 30, 0.95);
+    border: 1px solid #4caf50;
+    color: #a5d6a7;
+}
+
+.toast-error {
+    background-color: rgba(45, 25, 25, 0.95);
+    border: 1px solid #f44336;
+    color: #ef9a9a;
+}
+
+.toast-warning {
+    background-color: rgba(45, 40, 20, 0.95);
+    border: 1px solid #ff9800;
+    color: #ffe082;
+}
+
+/* Ключевые кадры анимации */
+@keyframes toastAnimation {
+    0% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    10% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    85% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-20px);
+        visibility: hidden; /* Полностью прячет элемент из доступности браузера */
+    }
+}
+</style>
+
+</head>
+<body>
+    <header>
+        {% if messages %}
+            <div class="toast-container">
+                {% for message in messages %}
+                    <div class="toast toast-{{ message.tags }}">
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        <nav>
+            <a href="{% url 'home' %}">Главная</a>
+            <a href="{% url 'cart:cart_detail' %}">🛒 Корзина ({{ cart_total_quantity }})</a>
+            <a href="{% url 'user_profile' %}">Профиль</a>
+            <a href="{% url 'order_list' %}">Заказы</a>
+
+            {% if user.is_authenticated %}
+                <span>Привет, {{ user.username }}!</span>
+
+                <form id="logout-form" method="post" action="{% url 'logout' %}" style="display: none;">
+                    {% csrf_token %}
+                </form>
+
+                <a href="#" onclick="document.getElementById('logout-form').submit(); return false;">Выйти</a>
+
+            {% else %}
+                <a href="{% url 'login' %}">Войти</a>
+                <a href="{% url 'register' %}">Регистрация</a>
+            {% endif %}
+        </nav>
+    </header>
+
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+</body>
+</html>
