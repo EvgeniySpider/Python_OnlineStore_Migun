@@ -1,4 +1,4 @@
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils.decorators import method_decorator
@@ -103,3 +103,34 @@ class OrderListView(LoginRequiredMixin, ListView):
             .prefetch_related('items__product')
             .order_by('-created_at')
         )
+
+
+class OrderCancelView(LoginRequiredMixin, View):
+    @method_decorator(transaction.atomic)
+    def post(self, request, order_id: int):
+        # 1. Достаем заказ. Ищем строго по id заказа И текущему юзеру (защита от чужих заказов)
+        order = get_object_or_404(Order, id=order_id, user=request.user)
+
+        # 2. Проверяем статус по:
+        if order.status == 'in_progress':
+            messages.error(request, f'Заказ №{order.id} уже передан в обработку и не может быть отменён.')
+            return redirect('order_list')
+
+        if order.status != 'created':
+            messages.warning(request, f'Заказ №{order.id} нельзя отменить.')
+            return redirect('order_list')
+
+        # 3. Если статус "created" — возвращаем товары на склад:
+        for item in order.items.all():
+            stock = Stock.objects.get(product=item.product)
+            stock.quantity += item.quantity
+            stock.save()
+
+        # 4. Переводим статус в "Отменён":
+        order.status = 'canceled'
+        order.save()
+
+        messages.success(request, f'Заказ №{order.id} успешно отменён, товары возвращены на склад.')
+        return redirect('order_list')
+
+        
