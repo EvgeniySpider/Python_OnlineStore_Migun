@@ -72,5 +72,35 @@ def test_success_login(client: Client, user: User):
     assert f'Привет, {user.username}!'.encode('utf-8') in response.content
     assert response.context['user'].is_authenticated
 
-    
 
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    'key, value, expected_error_field',
+    (
+        ('username', '', 'username'),
+        ('password1', 'incorrect_password', 'password2'),
+        ('password2', 'incorrect_password', 'password2'),
+    )
+)
+def test_unsuccessful_registration(
+    client: Client,
+    key: str,
+    value: str,
+    expected_error_field: str,
+):
+    url: str = reverse('register')
+    data = {
+        'username': 'user',
+        'email': 'user@gmail.com',
+        'first_name': 'Ivan',
+        'last_name': 'Ivanov',
+        'password1': '123456789abcdef',
+        'password2': '123456789abcdef',
+    }
+    data[key] = value
+
+    response = client.post(url, data=data)
+
+    assert response.status_code == HTTPStatus.OK
+    assert not User.objects.filter(username='user').exists()
+    assert expected_error_field in response.context['form'].errors
