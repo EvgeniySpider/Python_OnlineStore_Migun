@@ -59,3 +59,18 @@ def test_success_registration(client: Client):
     assert response.status_code == HTTPStatus.FOUND
     assert response.headers['Location'] == reverse('login')
     assert user.check_password('123456789abcdef')
+
+
+def test_success_login(client: Client, user: User):
+    url: str = reverse('login')
+    data = {'username': user.username, 'password': 'password123'}
+
+    response = client.post(url, data=data, follow=True)
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.redirect_chain == [(reverse('home'), HTTPStatus.FOUND)]
+    assert f'Привет, {user.username}!'.encode('utf-8') in response.content
+    assert response.context['user'].is_authenticated
+
+    
+
