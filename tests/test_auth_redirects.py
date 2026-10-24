@@ -5,12 +5,6 @@ from django.test import Client
 from django.urls import reverse
 
 
-import pytest
-from http import HTTPStatus
-from django.test import Client
-from django.urls import reverse
-
-
 @pytest.mark.parametrize('view_name', [
     'cart:cart_detail',
     'user_profile',
