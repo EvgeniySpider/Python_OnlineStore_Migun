@@ -42,23 +42,56 @@ def test_registration_page_get(client: Client):
     
 
 @pytest.mark.django_db
-def test_success_registration(client: Client):
+@pytest.mark.parametrize(
+    'form_data, expected_first_name, expected_last_name, expected_email',
+    [
+        (
+            {
+                'username': 'user_full',
+                'email': 'user@gmail.com',
+                'first_name': 'Ivan',
+                'last_name': 'Ivanov',
+                'password1': '123456789abcdef',
+                'password2': '123456789abcdef',
+            },
+            'Ivan',
+            'Ivanov',
+            'user@gmail.com',
+        ),
+        (
+            {
+                'username': 'user_minimal',
+                'email': '',
+                'first_name': '',
+                'last_name': '',
+                'password1': '123456789abcdef',
+                'password2': '123456789abcdef',
+            },
+            '',
+            '',
+            '',
+        ),
+    ],
+)
+def test_success_registration(
+    client: Client,
+    form_data: dict[str, str],
+    expected_first_name: str,
+    expected_last_name: str,
+    expected_email: str,
+):
     url: str = reverse('register')
-    data = {
-        'username': 'user',
-        'email': 'user@gmail.com',
-        'first_name': 'Ivan',
-        'last_name': 'Ivanov',
-        'password1': '123456789abcdef',
-        'password2': '123456789abcdef'
-    }
 
-    response = client.post(url, data=data)
+    response = client.post(url, data=form_data)
 
-    user = User.objects.get(username='user')
     assert response.status_code == HTTPStatus.FOUND
     assert response.headers['Location'] == reverse('login')
-    assert user.check_password('123456789abcdef')
+
+    user = User.objects.get(username=form_data['username'])
+    assert user.first_name == expected_first_name
+    assert user.last_name == expected_last_name
+    assert user.email == expected_email
+    assert user.check_password(form_data['password1'])
 
 
 def test_success_login(client: Client, user: User):
