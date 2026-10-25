@@ -1,4 +1,5 @@
 from django.views import View
+from django.contrib.auth import login
 from django.views.generic import CreateView
 from django.urls import reverse_lazy
 from users.forms import CustomUserCreationForm, UserDataForm
@@ -11,7 +12,7 @@ from django.contrib import messages
 
 class SignUpView(UserPassesTestMixin, CreateView):
     form_class = CustomUserCreationForm
-    success_url = reverse_lazy('login')
+    success_url = reverse_lazy('home')
     template_name = 'users/register.html'
 
     def test_func(self):
@@ -22,6 +23,10 @@ class SignUpView(UserPassesTestMixin, CreateView):
         # Если пользователь УЖЕ залогинен — кидаем его на главную страницу
         return redirect('home')
 
+    def form_valid(self, form):
+        response = super().form_valid(form)  # 1. Валидация позади, юзер сохранен в БД и лежит в self.object, сформирован редирект
+        login(self.request, self.object)     # 2. ID пользователя записан в request.session, сгенерирован sessionid
+        return response                      # 3. Клиенту улетает 302 редирект с заголовком Set-Cookie: sessionid=...
 
 class CustomLoginView(LoginView):
     template_name = 'users/login.html'
