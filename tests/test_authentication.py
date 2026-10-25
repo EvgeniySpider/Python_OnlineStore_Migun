@@ -141,3 +141,14 @@ def test_unsuccessful_registration(
     assert response.status_code == HTTPStatus.OK
     assert not User.objects.filter(username='user').exists()
     assert expected_error_field in response.context['form'].errors
+
+
+def test_logout(auth_client: Client):
+    url: str = reverse('logout')
+
+    response = auth_client.post(url, follow=True)
+
+    assert response.status_code == HTTPStatus.OK
+    assert not response.context['user'].is_authenticated
+    assert 'Регистрация'.encode('utf-8') in response.content
+    assert response.redirect_chain == [(reverse('home'), HTTPStatus.FOUND)]
