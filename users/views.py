@@ -24,9 +24,9 @@ class SignUpView(UserPassesTestMixin, CreateView):
         return redirect('home')
 
     def form_valid(self, form):
-        response = super().form_valid(form)  # 1. Валидация позади, юзер сохранен в БД и лежит в self.object, сформирован редирект
-        login(self.request, self.object)     # 2. ID пользователя записан в request.session, сгенерирован sessionid
-        return response                      # 3. Клиенту улетает 302 редирект с заголовком Set-Cookie: sessionid=...
+        response = super().form_valid(form)
+        login(self.request, self.object)
+        return response
 
 class CustomLoginView(LoginView):
     template_name = 'users/login.html'

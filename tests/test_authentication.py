@@ -82,16 +82,20 @@ def test_success_registration(
 ):
     url: str = reverse('register')
 
-    response = client.post(url, data=form_data)
+    response = client.post(url, data=form_data, follow=True)
 
-    assert response.status_code == HTTPStatus.FOUND
-    assert response.headers['Location'] == reverse('login')
+    assert response.status_code == HTTPStatus.OK
+    assert response.redirect_chain == [(reverse('home'), HTTPStatus.FOUND)]
 
     user = User.objects.get(username=form_data['username'])
     assert user.first_name == expected_first_name
     assert user.last_name == expected_last_name
     assert user.email == expected_email
     assert user.check_password(form_data['password1'])
+
+    # Проверка, что после регистрации пользователь авторизован и отображается приветствие:
+    assert response.context['user'].is_authenticated
+    assert f'Привет, {user.username}!'.encode('utf-8') in response.content
 
 
 def test_success_login(client: Client, user: User):
