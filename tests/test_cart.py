@@ -149,7 +149,7 @@ def test_change_quantity_goods_in_cart_positive(
     auth_client: Client,
     cart_item: CartItem
 ):
-    url = reverse(
+    url: str = reverse(
         'cart:quantity_item_update',
         kwargs={'item_id': cart_item.id, 'action': action}
     )
@@ -167,3 +167,44 @@ def test_change_quantity_goods_in_cart_positive(
     assert response.redirect_chain == [(expected_redirect_url, HTTPStatus.FOUND)]
 
 
+@pytest.mark.parametrize(
+    'action, initial_cart_quantity, stock_quantity, expected_message',
+    [
+        ('increase', 2, 2, 'На складе больше нет товара'),
+        ('decrease', 1, 10, 'Минимальное количество товара в корзине — 1 шт.'),
+    ]
+)
+def test_change_quantity_goods_in_cart_negative(
+    action: str,
+    initial_cart_quantity: int,
+    stock_quantity: int,
+    expected_message: str,
+    auth_client: Client,
+    cart_item: CartItem
+):
+    # Устанавливаем количество товара В КОРЗИНЕ
+    cart_item.quantity = initial_cart_quantity
+    cart_item.save()
+    # Устанавливаем количество товара НА СКЛАДЕ
+    stock = cart_item.product.stock
+    stock.quantity = stock_quantity
+    stock.save()
+
+    url: str = reverse(
+        'cart:quantity_item_update',
+        kwargs={'item_id': cart_item.id, 'action': action}
+    )
+
+    response = auth_client.post(url, follow=True)
+    cart_item.refresh_from_db()
+
+    # Количество не должно измениться
+    assert cart_item.quantity == initial_cart_quantity
+
+    # Проверка предупреждения
+    messages = list(response.context['messages'])
+    assert expected_message in str(messages[0])
+
+
+    # Проверка редиректа
+    assert response.redirect_chain == [(reverse('cart:cart_detail'), HTTPStatus.FOUND)]
