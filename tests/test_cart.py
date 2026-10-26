@@ -2,6 +2,7 @@ from http import HTTPStatus
 import pytest
 from django.test import Client
 from django.urls import reverse
+from pytest_django.asserts import assertRedirects
 from cart.models import Cart, CartItem
 from goods.models import Product, Stock
 from users.models import User
@@ -134,4 +135,35 @@ def test_goods_in_cart(
     assert cart_item.product.name.encode('utf-8') in response.content
     assert cart_item.product.description.encode('utf-8') in response.content
     assert cart_item in response.context['cart_items']
+
+
+@pytest.mark.parametrize(
+    'action, quantity',
+    (
+        ('increase', 3), ('decrease', 1)
+    )
+)
+def test_change_quantity_goods_in_cart_positive(
+    action: str,
+    quantity: int,
+    auth_client: Client,
+    cart_item: CartItem
+):
+    url = reverse(
+        'cart:quantity_item_update',
+        kwargs={'item_id': cart_item.id, 'action': action}
+    )
+    # Начальное количество товара в корзине
+    assert cart_item.quantity == 2
+
+    response = auth_client.post(url, follow=True)
+    cart_item.refresh_from_db()
+
+    # Проверка изменения данных
+    assert cart_item.quantity == quantity
+
+    # Проверка редиректа
+    expected_redirect_url = reverse('cart:cart_detail')
+    assert response.redirect_chain == [(expected_redirect_url, HTTPStatus.FOUND)]
+
 
