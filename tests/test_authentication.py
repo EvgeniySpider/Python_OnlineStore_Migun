@@ -152,3 +152,26 @@ def test_logout(auth_client: Client):
     assert not response.context['user'].is_authenticated
     assert 'Регистрация'.encode('utf-8') in response.content
     assert response.redirect_chain == [(reverse('home'), HTTPStatus.FOUND)]
+
+
+@pytest.mark.parametrize(
+    'username, password', (
+        ('testuser', 'unexist_password'),
+        ('unexist_username', 'password123'),
+        ('unexist_username', 'unexist_password'),
+    )
+)
+def test_unsuccessful_login(
+    username: str,
+    password: str,
+    client: Client,
+    user: User
+):
+    url: str = reverse('login')
+    data = {'username': username, 'password': password}
+    
+    response = client.post(url, data=data)
+
+    assert response.status_code == HTTPStatus.OK
+    assert not response.context['user'].is_authenticated
+    assert '__all__' in response.context['form'].errors
