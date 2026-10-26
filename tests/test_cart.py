@@ -17,7 +17,7 @@ class TestAddToCart:
         product: Product
     ):
         """Тест: Первое добавление товара в корзину"""
-        url = reverse('cart:add_to_cart', args=[product.id])
+        url: str = reverse('cart:add_to_cart', args=[product.id])
         
         # Делаем POST-запрос на добавление
         response = auth_client.post(url)
@@ -39,7 +39,7 @@ class TestAddToCart:
         product: Product
     ):
         """Тест: Добавление товара, который уже есть в корзине (увеличение количества)"""
-        url = reverse('cart:add_to_cart', args=[product.id])
+        url: str = reverse('cart:add_to_cart', args=[product.id])
         
         # Добавляем товар дважды
         auth_client.post(url)
@@ -62,7 +62,7 @@ class TestAddToCart:
         stock.quantity = 0
         stock.save()
         
-        url = reverse('cart:add_to_cart', args=[product.id])
+        url: str = reverse('cart:add_to_cart', args=[product.id])
         response = auth_client.post(url, follow=True)
         
         # Проверяем, что товар не добавился
@@ -84,7 +84,7 @@ class TestAddToCart:
         stock.quantity = 1
         stock.save()
         
-        url = reverse('cart:add_to_cart', args=[product.id])
+        url: str = reverse('cart:add_to_cart', args=[product.id])
         
         # Добавляем первый раз (успешно)
         auth_client.post(url)
@@ -108,9 +108,30 @@ class TestAddToCart:
         product: Product
     ):
         """Тест: Анонимный пользователь перенаправляется на страницу логина"""
-        url = reverse('cart:add_to_cart', args=[product.id])
+        url: str = reverse('cart:add_to_cart', args=[product.id])
         response = client.post(url)
         
         assert response.status_code == HTTPStatus.FOUND
         assert response.url.startswith(reverse('login'))
         assert not CartItem.objects.exists()
+
+
+def test_empty_cart(auth_client: Client):
+    url: str =  reverse('cart:cart_detail')
+    response = auth_client.get(url)
+
+    assert response.status_code == HTTPStatus.OK
+    assert 'Корзина пуста'.encode('utf-8') in response.content
+
+def test_goods_in_cart(
+    auth_client: Client,
+    cart_item: CartItem
+):
+    url: str =  reverse('cart:cart_detail')
+    response = auth_client.get(url)
+
+    assert response.status_code == HTTPStatus.OK
+    assert cart_item.product.name.encode('utf-8') in response.content
+    assert cart_item.product.description.encode('utf-8') in response.content
+    assert cart_item in response.context['cart_items']
+
