@@ -3,6 +3,7 @@ from http import HTTPStatus
 from django.test import Client
 from django.urls import reverse
 from django.contrib.auth.forms import AuthenticationForm
+from pytest_django.asserts import assertRedirects
 from users.forms import CustomUserCreationForm
 import pytest
 
@@ -175,3 +176,17 @@ def test_unsuccessful_login(
     assert response.status_code == HTTPStatus.OK
     assert not response.context['user'].is_authenticated
     assert '__all__' in response.context['form'].errors
+
+
+def test_authenticated_client_login_and_register(auth_client: Client):
+    url_login = reverse('login')
+    url_register = reverse('register')
+    expected_url = reverse('home')
+
+    # Проверка для логина
+    response_login = auth_client.get(url_login)
+    assertRedirects(response_login, expected_url)
+
+    # Проверка для регистрации
+    response_register = auth_client.get(url_register)
+    assertRedirects(response_register, expected_url)
