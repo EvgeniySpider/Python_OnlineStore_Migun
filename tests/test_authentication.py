@@ -178,15 +178,17 @@ def test_unsuccessful_login(
     assert '__all__' in response.context['form'].errors
 
 
-def test_authenticated_client_login_and_register(auth_client: Client):
-    url_login = reverse('login')
-    url_register = reverse('register')
+@pytest.mark.parametrize(
+    'url_name',
+    ('login', 'register')
+)
+def test_authenticated_user_redirected_from_auth_pages(
+    auth_client: Client,
+    url_name: str
+):
+    url = reverse(url_name)
     expected_url = reverse('home')
 
-    # Проверка для логина
-    response_login = auth_client.get(url_login)
-    assertRedirects(response_login, expected_url)
+    response = auth_client.get(url)
 
-    # Проверка для регистрации
-    response_register = auth_client.get(url_register)
-    assertRedirects(response_register, expected_url)
+    assertRedirects(response, expected_url)
