@@ -2,7 +2,6 @@ from http import HTTPStatus
 import pytest
 from django.test import Client
 from django.urls import reverse
-from pytest_django.asserts import assertRedirects
 from cart.models import Cart, CartItem
 from goods.models import Product, Stock
 from users.models import User
@@ -242,3 +241,35 @@ def test_delete_cart_negative(
 
     # Проверяем состояние в базе данных
     assert CartItem.objects.filter(pk=target_id).exists() is should_exist_in_db
+
+
+@pytest.mark.parametrize(
+    'url_name, kwargs',
+    [
+        ('cart:cart_item_delete', {}),
+        ('cart:quantity_item_update', {'action': 'increase'}),
+        ('cart:quantity_item_update', {'action': 'decrease'}),
+    ]
+)
+def test_anonymous_user_cannot_modify_cart_items(
+    url_name: str,
+    kwargs: dict,
+    client: Client,
+    cart_item: CartItem
+):
+    """Анонимный пользователь при попытке изменить/удалить товар редиректится на логин."""
+    # Подставляем реальный item_id в параметры маршрута
+    kwargs['item_id'] = cart_item.id
+    target_url: str = reverse(url_name, kwargs=kwargs)
+
+    # Делаем POST от неавторизованного клиента
+    response = client.post(target_url)
+
+    # Проверяем редирект на страницу входа с параметром ?next=
+    expected_redirect_url = f"{reverse('login')}?next={target_url}"
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.headers['Location'] == expected_redirect_url
+
+    # Проверяем, что в базе ничего не изменилось и не удалилось
+    cart_item.refresh_from_db()
+    assert cart_item.quantity == 2
