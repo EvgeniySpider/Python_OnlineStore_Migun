@@ -209,3 +209,27 @@ class TestConfirmOrderNegativeScenarios:
         messages = list(response.context['messages'])
         assert 'Заказ не был оформлен' in str(messages[0])
 
+
+def test_cancell_order_success(auth_client: Client, created_order: Order, stock: Stock):
+    url: str = reverse('order_cancel', kwargs={'order_id': created_order.id})
+    assert created_order.status == 'created'
+    
+    # исходный остаток на складе (10 шт.)
+    initial_stock = stock.quantity
+    ordered_quantity = created_order.items.first().quantity  # 2 шт.
+
+    response = auth_client.post(url, follow=True)
+    created_order.refresh_from_db()
+    stock.refresh_from_db()
+
+    # Проверка смены статуса на 'canceled'
+    assert response.status_code == HTTPStatus.OK
+    assert created_order.status == 'canceled'
+
+    # Проверка возвращения товаров на склад (10 + 2 = 12)
+    assert stock.quantity == initial_stock + ordered_quantity
+
+    # Проверка редиректа и сообщения об успехе
+    assert response.redirect_chain == [(reverse('order_list'), HTTPStatus.FOUND)]
+    messages = list(response.context['messages'])
+    assert 'успешно отменён, товары возвращены на склад' in str(messages[0])

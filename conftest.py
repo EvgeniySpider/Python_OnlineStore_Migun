@@ -3,6 +3,7 @@ from goods.models import Category, Product, Stock
 from cart.models import Cart, CartItem
 
 from django.test import Client
+from orders.models import Order, OrderItem
 from users.models import User
 
 
@@ -99,3 +100,25 @@ def cart_item(cart: Cart, product: Product) -> CartItem:
         product=product,
         quantity=2
     )
+
+
+@pytest.fixture
+def created_order(user: User, product: Product) -> Order:
+    order = Order.objects.create(
+        user=user,
+        first_name = user.first_name,
+        last_name = user.last_name,
+        phone_number = user.phone_number,
+        city = user.city,
+        street = user.street,
+        house_number = user.house_number
+    )
+
+    OrderItem.objects.create(
+        order=order,
+        product=product,
+        price=product.price,
+        quantity=2
+    )
+
+    return order
