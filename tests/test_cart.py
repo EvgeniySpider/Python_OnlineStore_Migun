@@ -220,3 +220,25 @@ def test_delete_cart_success(auth_client: Client, cart_item: CartItem):
     assert not response.context.get('cart_items', [])
     assert response.redirect_chain == [(reverse('cart:cart_detail'), HTTPStatus.FOUND)]
     assert not CartItem.objects.filter(pk=cart_item.pk).exists()
+
+
+@pytest.mark.parametrize('use_existing_item, should_exist_in_db', [
+    (True, True),    # Чужой товар: получаем 404, товар в БД НЕ удаляется
+    (False, False),  # Несуществующий id: получаем 404, в БД такого товара как не было, так и нет
+])
+def test_delete_cart_negative(
+    use_existing_item: bool,
+    should_exist_in_db: bool,
+    alien_auth_client: Client,
+    cart_item: CartItem
+):
+    target_id = cart_item.id if use_existing_item else 99999
+
+    url = reverse('cart:cart_item_delete', kwargs={'item_id': target_id})
+    response = alien_auth_client.post(url)
+
+    # Вьюха отдаёт 404 и не пускает чужака
+    assert response.status_code == HTTPStatus.NOT_FOUND
+
+    # Проверяем состояние в базе данных
+    assert CartItem.objects.filter(pk=target_id).exists() is should_exist_in_db

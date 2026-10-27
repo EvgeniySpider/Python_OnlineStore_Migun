@@ -25,13 +25,33 @@ def user(db) -> User:
         house_number='10'
     )
 
-
 @pytest.fixture
 def auth_client(client: Client, user: User) -> Client:
     """Тестовый клиент Django, уже залогиненный под пользователем"""
     client.force_login(user)
     return client
 
+
+@pytest.fixture
+def alien_user(db) -> User:
+    """Обычный пользователь с заполненным профилем"""
+    return User.objects.create_user(
+        username='alien_testuser',
+        email='alien_test@example.com',
+        password='password123',
+        first_name='Иван',
+        last_name='Иванов',
+        phone_number='+79991112234',
+        city='Москва',
+        street='Ленина',
+        house_number='10'
+    )
+
+@pytest.fixture
+def alien_auth_client(client: Client, alien_user: User) -> Client:
+    """Тестовый клиент Django, уже залогиненный под пользователем"""
+    client.force_login(alien_user)
+    return client
 
 # ==========================================
 # 2. ТОВАРЫ И СКЛАД
