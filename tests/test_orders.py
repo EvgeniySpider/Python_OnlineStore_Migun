@@ -210,26 +210,89 @@ class TestConfirmOrderNegativeScenarios:
         assert 'Заказ не был оформлен' in str(messages[0])
 
 
-def test_cancell_order_success(auth_client: Client, created_order: Order, stock: Stock):
-    url: str = reverse('order_cancel', kwargs={'order_id': created_order.id})
-    assert created_order.status == 'created'
-    
-    # исходный остаток на складе (10 шт.)
-    initial_stock = stock.quantity
-    ordered_quantity = created_order.items.first().quantity  # 2 шт.
+@pytest.mark.django_db
+class TestOrderCancel:
 
-    response = auth_client.post(url, follow=True)
-    created_order.refresh_from_db()
-    stock.refresh_from_db()
+    def test_cancel_order_success(
+        self,
+        auth_client: Client,
+        created_order: Order,
+        stock: Stock
+    ):
+        """Успешная отмена заказа: статус меняется на canceled, товары возвращаются на склад."""
+        url: str = reverse('order_cancel', kwargs={'order_id': created_order.id})
+        assert created_order.status == 'created'
 
-    # Проверка смены статуса на 'canceled'
-    assert response.status_code == HTTPStatus.OK
-    assert created_order.status == 'canceled'
+        initial_stock = stock.quantity
+        ordered_quantity = created_order.items.first().quantity
 
-    # Проверка возвращения товаров на склад (10 + 2 = 12)
-    assert stock.quantity == initial_stock + ordered_quantity
+        response = auth_client.post(url, follow=True)
+        created_order.refresh_from_db()
+        stock.refresh_from_db()
 
-    # Проверка редиректа и сообщения об успехе
-    assert response.redirect_chain == [(reverse('order_list'), HTTPStatus.FOUND)]
-    messages = list(response.context['messages'])
-    assert 'успешно отменён, товары возвращены на склад' in str(messages[0])
+        assert response.status_code == HTTPStatus.OK
+        assert created_order.status == 'canceled'
+        # Товары вернулись на склад
+        assert stock.quantity == initial_stock + ordered_quantity
+        # Редирект в список заказов
+        assert response.redirect_chain == [(reverse('order_list'), HTTPStatus.FOUND)]
+        # Сообщение об успехе
+        messages = list(response.context['messages'])
+        assert 'успешно отменён, товары возвращены на склад' in str(messages[0])
+
+    @pytest.mark.parametrize('status, expected_message', [
+        ('in_progress', 'уже передан в обработку и не может быть отменён'),
+        ('completed', 'нельзя отменить'),
+    ])
+    def test_cancel_order_invalid_status_negative(
+        self,
+        status: str,
+        expected_message: str,
+        auth_client: Client,
+        created_order: Order,
+        stock: Stock
+    ):
+        """Нельзя отменить заказ со статусами in_progress или completed."""
+        # Меняем статус заказа перед попыткой отмены
+        created_order.status = status
+        created_order.save()
+
+        initial_stock = stock.quantity
+        url: str = reverse('order_cancel', kwargs={'order_id': created_order.id})
+
+        response = auth_client.post(url, follow=True)
+        created_order.refresh_from_db()
+        stock.refresh_from_db()
+
+        # Статус не должен измениться
+        assert created_order.status == status
+        # Склад не должен измениться (товары не возвращаются)
+        assert stock.quantity == initial_stock
+        # Редирект в список заказов
+        assert response.redirect_chain == [(reverse('order_list'), HTTPStatus.FOUND)]
+        # Проверяем сообщение пользователю
+        messages = list(response.context['messages'])
+        assert expected_message in str(messages[0])
+
+    def test_cancel_alien_order_forbidden_negative(
+        self,
+        alien_auth_client: Client,
+        created_order: Order,
+        stock: Stock
+    ):
+        """Попытка отменить чужой заказ возвращает 404 (защита от IDOR)."""
+        url: str = reverse('order_cancel', kwargs={'order_id': created_order.id})
+        initial_stock = stock.quantity
+
+        # Запрос делает сторонний пользователь
+        response = alien_auth_client.post(url)
+
+        # get_object_or_404(Order, id=order_id, user=request.user) даёт 404
+        assert response.status_code == HTTPStatus.NOT_FOUND
+
+        created_order.refresh_from_db()
+        stock.refresh_from_db()
+
+        # Данные заказа и склада не пострадали
+        assert created_order.status == 'created'
+        assert stock.quantity == initial_stock
