@@ -208,3 +208,15 @@ def test_change_quantity_goods_in_cart_negative(
 
     # Проверка редиректа
     assert response.redirect_chain == [(reverse('cart:cart_detail'), HTTPStatus.FOUND)]
+
+
+def test_delete_cart_success(auth_client: Client, cart_item: CartItem):
+    url: str = reverse('cart:cart_item_delete',  kwargs={'item_id': cart_item.id})
+
+    response = auth_client.post(url, follow=True)
+
+    assert response.status_code == HTTPStatus.OK
+    assert 'Корзина пуста 🛒'.encode('utf-8') in response.content
+    assert not response.context.get('cart_items', [])
+    assert response.redirect_chain == [(reverse('cart:cart_detail'), HTTPStatus.FOUND)]
+    assert not CartItem.objects.filter(pk=cart_item.pk).exists()
