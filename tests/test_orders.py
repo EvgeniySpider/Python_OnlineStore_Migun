@@ -3,8 +3,10 @@ import pytest
 from django.test import Client
 from django.urls import reverse, reverse_lazy
 from cart.models import Cart, CartItem
+from goods.models import Stock
 from orders.models import Order, OrderItem
 from orders.forms import OrderModelForm
+from users.models import User
 
 def test_empty_orders(auth_client: Client):
     url: str = reverse('order_list')
@@ -69,3 +71,60 @@ class TestNegativeOrderCreateButton:
         assert response.status_code == HTTPStatus.OK
         assert not response.context.get('form')
         assert response.redirect_chain == [(self.EXPECTED_REDIRECT_URL, HTTPStatus.FOUND)]
+
+
+@pytest.mark.parametrize('apartment_number, expected_apartment', [
+    ('42', '42'),  # Заказ в квартиру
+    ('', None),      # Заказ в частный дом (пустая строка в форме)
+])
+def test_confirm_order_success(
+    apartment_number: str,
+    expected_apartment: str,
+    auth_client: Client,
+    cart_item: CartItem,
+    stock: Stock
+):
+    url: str = reverse('order_create')
+    user = cart_item.cart.user
+
+    initial_stock_quantity = stock.quantity
+    ordered_quantity = cart_item.quantity
+    expected_price = cart_item.product.price
+
+    form_data = {
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'phone_number': user.phone_number,
+        'city': user.city,
+        'street': user.street,
+        'house_number': user.house_number,
+        'apartment_number': apartment_number,
+    }
+
+    response = auth_client.post(url, data=form_data, follow=True)
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.redirect_chain == [(reverse('home'), HTTPStatus.FOUND)]
+
+    # 1. Проверяем Order
+    order = Order.objects.get(user=user)
+    assert order.status == 'created'
+    assert order.phone_number == user.phone_number
+    assert order.apartment_number == expected_apartment
+
+    # 2. Проверяем OrderItem
+    order_item = order.items.first()
+    assert order_item.product == cart_item.product
+    assert order_item.quantity == ordered_quantity
+    assert order_item.price == expected_price
+
+    # 3. Проверяем списание со склада
+    stock.refresh_from_db()
+    assert stock.quantity == initial_stock_quantity - ordered_quantity
+
+    # 4. Проверяем очистку корзины
+    assert not CartItem.objects.filter(cart__user=user).exists()
+
+    # 5. Проверяем сообщение
+    messages = list(response.context['messages'])
+    assert 'Заказ успешно оформлен' in str(messages[0])
