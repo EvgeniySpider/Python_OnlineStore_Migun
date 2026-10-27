@@ -1,6 +1,7 @@
 from http import HTTPStatus
+import pytest
 from django.test import Client
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from cart.models import Cart, CartItem
 from orders.models import Order, OrderItem
 from orders.forms import OrderModelForm
@@ -37,3 +38,34 @@ def test_order_create_success(auth_client: Client, cart_item: CartItem):
     # Номера квартиры нет
     assert response.context['form'].initial['apartment_number'] is None
 
+
+@pytest.mark.django_db
+class TestNegativeOrderCreateButton:
+    URL = reverse_lazy('order_create')
+    EXPECTED_REDIRECT_URL = reverse_lazy('cart:cart_detail')
+
+    def test_order_create_when_cart_is_alien(self, alien_auth_client: Client, cart_item: CartItem):
+        """В базе есть чужая корзина с товарами, но у текущего юзера пусто."""
+        response = alien_auth_client.get(self.URL, follow=True)
+
+        assert response.status_code == HTTPStatus.OK
+        assert not response.context.get('form')
+        assert response.redirect_chain == [(self.EXPECTED_REDIRECT_URL, HTTPStatus.FOUND)]
+
+    def test_order_create_when_cart_does_not_exist(self, auth_client: Client):
+        """У пользователя вообще нет объекта корзины."""
+        response = auth_client.get(self.URL, follow=True)
+
+        assert response.status_code == HTTPStatus.OK
+        assert not response.context.get('form')
+        assert response.redirect_chain == [(self.EXPECTED_REDIRECT_URL, HTTPStatus.FOUND)]
+
+    def test_order_create_when_cart_is_empty(self, auth_client: Client, user: User):
+        """Корзина у пользователя создана, но в ней нет товаров."""
+        Cart.objects.create(user=user)
+
+        response = auth_client.get(self.URL, follow=True)
+
+        assert response.status_code == HTTPStatus.OK
+        assert not response.context.get('form')
+        assert response.redirect_chain == [(self.EXPECTED_REDIRECT_URL, HTTPStatus.FOUND)]
