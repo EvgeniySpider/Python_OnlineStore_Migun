@@ -128,3 +128,84 @@ def test_confirm_order_success(
     # 5. Проверяем сообщение
     messages = list(response.context['messages'])
     assert 'Заказ успешно оформлен' in str(messages[0])
+
+
+@pytest.mark.django_db
+class TestConfirmOrderNegativeScenarios:
+    URL = reverse_lazy('order_create')
+    EXPECTED_REDIRECT_URL = reverse_lazy('cart:cart_detail')
+    
+    @pytest.mark.parametrize('key',
+        ('first_name', 'last_name', 'phone_number', 'city', 'street', 'house_number')
+    )
+    def test_confirm_order_send_incomplete_form(
+        self,
+        key: str,
+        auth_client: Client,
+        cart_item: CartItem,
+    ):
+
+        user = cart_item.cart.user
+        form_data = {
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'phone_number': user.phone_number,
+            'city': user.city,
+            'street': user.street,
+            'house_number': user.house_number,
+        }
+        del form_data[key]
+
+        response = auth_client.post(self.URL, data=form_data)
+
+        assert response.status_code == HTTPStatus.OK
+        assert not Order.objects.exists()
+        assert CartItem.objects.filter(pk=cart_item.pk).exists()
+        assert key in response.context['form'].errors
+        assert 'Оформление заказа'.encode('utf-8') in response.content
+
+        messages = list(response.context['messages'])
+        assert 'Пожалуйста, исправьте ошибки в форме' in str(messages[0])
+
+
+    def test_confirm_order_when_goods_isnt_enough(
+        self,
+        auth_client: Client,
+        cart_item: CartItem
+    ):
+        user = cart_item.cart.user
+        form_data = {
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'phone_number': user.phone_number,
+            'city': user.city,
+            'street': user.street,
+            'house_number': user.house_number,
+        }
+        # В корзине 2 шт, а на складе оставляем только 1 шт.
+        stock = Stock.objects.get(pk=cart_item.product.id)
+        stock.quantity = 1
+        stock.save()
+
+        response = auth_client.post(self.URL, data=form_data)
+
+        assert response.status_code == HTTPStatus.OK
+        assert not Order.objects.exists()
+        
+        # Корзина осталась нетронутой
+        assert CartItem.objects.filter(pk=cart_item.pk).exists()
+
+        # На складе ничего не списалось
+        stock.refresh_from_db()
+        assert stock.quantity == 1
+
+        # Ошибка в форме (non-field errors)
+        assert '__all__' in response.context['form'].errors
+        error_message = response.context['form'].errors['__all__'][0]
+        assert 'Недостаточно товара' in error_message
+        assert 'Доступно: 1 шт.' in error_message
+
+        # Сообщение пользователю
+        messages = list(response.context['messages'])
+        assert 'Заказ не был оформлен' in str(messages[0])
+
