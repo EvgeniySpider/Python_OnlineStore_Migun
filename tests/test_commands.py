@@ -104,7 +104,7 @@ def test_export_product_residue_command(tmp_path: Path, product: Product, stock:
     """Команда export_product_residue корректно выгружает остатки товаров в JSON-файл."""
     # Создаём путь к временному файлу внутри тестовой папки tmp_path
     output_file = tmp_path / "test_residue.json"
-    assert output_file.exists()
+
     out = StringIO()
 
     # Запускаем экспорт, передавая путь через флаг --file
@@ -132,7 +132,6 @@ def test_load_goods_command_success(tmp_path: Path, product: Product, stock: Sto
 
     # Создаём временный JSON-файл с новыми остатками (например, 25 шт.)
     input_file = tmp_path / "import_residue.json"
-    print(tmp_path)
     import_data = [
         {'name': product.name, 'quantity': 25}
     ]

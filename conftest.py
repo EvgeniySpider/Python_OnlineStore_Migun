@@ -1,7 +1,9 @@
 import pytest
 from goods.models import Category, Product, Stock
 from cart.models import Cart, CartItem
-
+from io import BytesIO
+from PIL import Image
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client
 from orders.models import Order, OrderItem
 from users.models import User
@@ -122,3 +124,33 @@ def created_order(user: User, product: Product) -> Order:
     )
 
     return order
+
+
+@pytest.fixture
+def product_with_image(category: Category, tmp_path, settings) -> Product:
+    """Товар с реальным изображением, изолированным во временной папке tmp_path."""
+    # 1. СНАЧАЛА перенаправляем MEDIA_ROOT во временную папку pytest
+    settings.MEDIA_ROOT = tmp_path
+
+    # 2. Создаем виртуальный байтовый буфер в RAM
+    image_buffer = BytesIO()
+    image = Image.new('RGB', (100, 100), color='red')
+    image.save(image_buffer, format='PNG')
+    image_buffer.seek(0)
+
+    uploaded_image = SimpleUploadedFile(
+        name='test_product.png',
+        content=image_buffer.read(),
+        content_type='image/png'
+    )
+
+    # 3. Файл запишется в tmp_path, а не в реальную папку media/
+    prod = Product.objects.create(
+        name='Смартфон с фото',
+        description='Классный телефон',
+        price=50000.00,
+        category=category,
+        image=uploaded_image
+    )
+    Stock.objects.create(product=prod, quantity=5)
+    return prod

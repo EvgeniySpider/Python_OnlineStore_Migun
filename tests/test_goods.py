@@ -3,6 +3,7 @@ import pytest
 
 from django.test import Client
 from django.urls import reverse
+from django.test import override_settings
 
 from goods.models import Product
 
@@ -68,3 +69,31 @@ def test_product_detail_not_found(client: Client):
     response = client.get(url)
     
     assert response.status_code == HTTPStatus.NOT_FOUND
+
+
+def test_product_detail_without_image(client: Client, product: Product):
+    """Если у товара нет фото, выводится блок 'Изображение отсутствует'."""
+    assert not product.image  # У стандартного товара из conftest фото нет
+
+    url = reverse('product_detail', kwargs={'pk': product.pk})
+    response = client.get(url)
+
+    content = response.content.decode('utf-8')
+    assert 'Изображение отсутствует' in content
+    assert '<img src=' not in content
+
+
+def test_product_detail_with_image(client: Client, product_with_image: Product):
+    """Если у товара есть фото, выводится тег <img> с URL картинки."""
+    url = reverse('product_detail', kwargs={'pk': product_with_image.pk})
+    response = client.get(url)
+
+    content = response.content.decode('utf-8')
+
+    # 1. Проверяем наличие URL картинки в теге <img>
+    assert product_with_image.image.url in content
+    assert f'alt="{product_with_image.name}"' in content
+    print(content)
+
+    # 2. Заглушка об отсутствии изображения не должна отображаться
+    assert 'Изображение отсутствует' not in content
