@@ -1,4 +1,6 @@
 from io import StringIO
+import json
+from pathlib import Path
 import pytest
 from django.core.management import CommandError, call_command
 from goods.models import Product, Stock
@@ -93,3 +95,81 @@ class TestCommandProductQuantityNegative:
         assert f'Количество отнимаемого товара "{product.name}" не может быть больше его наличия' in str(exc_info.value)
         stock.refresh_from_db()
         assert stock.quantity == 10
+
+
+# ----------------- ТЕСТЫ ЭКСПОРТА И ИМПОРТА ОСТАТКОВ -----------------
+
+
+def test_export_product_residue_command(tmp_path: Path, product: Product, stock: Stock):
+    """Команда export_product_residue корректно выгружает остатки товаров в JSON-файл."""
+    # Создаём путь к временному файлу внутри тестовой папки tmp_path
+    output_file = tmp_path / "test_residue.json"
+    assert output_file.exists()
+    out = StringIO()
+
+    # Запускаем экспорт, передавая путь через флаг --file
+    call_command('export_product_residue', file=str(output_file), stdout=out)
+
+    # 1. Проверяем, что файл реально создался на диске
+    assert output_file.exists()
+
+    # 2. Читаем созданный JSON и проверяем его структуру и данные
+    with open(output_file, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    expected_data = [
+        {'name': product.name, 'quantity': stock.quantity}
+    ]
+    assert data == expected_data
+
+    # 3. Проверяем вывод сообщения об успехе в консоль
+    assert f'Остатки успешно выгружены в {output_file}' in out.getvalue()
+
+
+def test_load_goods_command_success(tmp_path: Path, product: Product, stock: Stock):
+    """Команда load_goods корректно обновляет остатки товаров из JSON-файла."""
+    assert stock.quantity == 10
+
+    # Создаём временный JSON-файл с новыми остатками (например, 25 шт.)
+    input_file = tmp_path / "import_residue.json"
+    print(tmp_path)
+    import_data = [
+        {'name': product.name, 'quantity': 25}
+    ]
+    with open(input_file, 'w', encoding='utf-8') as f:
+        json.dump(import_data, f, ensure_ascii=False)
+
+    out = StringIO()
+
+    # Запускаем импорт
+    call_command('load_goods', file=str(input_file), stdout=out)
+
+    # 1. Проверяем, что количество в базе данных реально обновилось до 25
+    stock.refresh_from_db()
+    assert stock.quantity == 25
+
+    # 2. Проверяем текст отчёта в консоли
+    output = out.getvalue()
+    assert f'Количество товара "{product.name}" успешно обновлено и теперь составляет 25 шт.' in output
+
+
+@pytest.mark.django_db
+def test_load_goods_command_product_not_found(tmp_path: Path):
+    """Если товара из JSON нет в БД, load_goods пишет ошибку в stderr и не падает."""
+    input_file = tmp_path / "unknown_goods.json"
+    import_data = [
+        {'name': 'Несуществующий_Товар', 'quantity': 50}
+    ]
+    with open(input_file, 'w', encoding='utf-8') as f:
+        json.dump(import_data, f, ensure_ascii=False)
+
+    err = StringIO()
+    out = StringIO()
+
+    # Вызываем команду с перехватом stderr
+    call_command('load_goods', file=str(input_file), stdout=out, stderr=err)
+
+    # Проверяем, что сообщение об ошибке попало именно в поток stderr
+    assert "Товар 'Несуществующий_Товар' не найден в базе данных!" in err.getvalue()
+    # И в базе такой товар не появился
+    assert not Product.objects.filter(name='Несуществующий_Товар').exists()
