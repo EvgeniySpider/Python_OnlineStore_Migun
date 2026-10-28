@@ -39,12 +39,7 @@ class CustomLoginView(LoginView):
 class UserDataView(LoginRequiredMixin, View):
     def get(self, request):
         form = UserDataForm(instance=request.user)
-        orders = Order.objects.filter(user=request.user).prefetch_related('items__product')
-        context = {
-            'form': form,
-            'orders':orders,
-        }
-        return render(request, 'users/user_data_and_orders.html', context)
+        return render(request, 'users/user_data_and_orders.html', {'form': form})
 
     def post(self, request):
         # Передаем и данные из формы, и экземпляр, который надо обновить
@@ -55,5 +50,4 @@ class UserDataView(LoginRequiredMixin, View):
             return redirect('user_profile')
 
         messages.error(request, 'Пожалуйста, исправьте ошибки в форме.')
-        orders = Order.objects.filter(user=request.user).prefetch_related('items__product')
-        return render(request, 'users/user_data_and_orders.html', {'form': form, 'orders': orders})
+        return render(request, 'users/user_data_and_orders.html', {'form': form})
