@@ -3,7 +3,7 @@ import pytest
 from django.test import Client
 from django.urls import reverse
 from cart.models import Cart, CartItem
-from goods.models import Product, Stock
+from goods.models import Category, Product, Stock
 from users.models import User
 
 
@@ -273,3 +273,57 @@ def test_anonymous_user_cannot_modify_cart_items(
     # Проверяем, что в базе ничего не изменилось и не удалилось
     cart_item.refresh_from_db()
     assert cart_item.quantity == 2
+
+
+@pytest.mark.django_db
+def test_cart_context_processor_anonymous_user(client: Client):
+    """Для неавторизованного пользователя счётчик корзины в шапке равен 0."""
+    response = client.get(reverse('home'))
+    assert response.status_code == HTTPStatus.OK
+    
+    # 1. Проверяем значение переменной в контексте шаблона
+    assert response.context['cart_total_quantity'] == 0
+    
+    # 2. Проверяем отображение в шапке base.html
+    assert '🛒 Корзина (0)' in response.content.decode('utf-8')
+
+
+def test_cart_context_processor_empty_cart_authenticated(auth_client: Client):
+    """Для авторизованного пользователя с пустой корзиной счётчик равен 0."""
+    response = auth_client.get(reverse('home'))
+    assert response.status_code == HTTPStatus.OK
+
+    assert response.context['cart_total_quantity'] == 0
+    assert '🛒 Корзина (0)' in response.content.decode('utf-8')
+
+
+def test_cart_context_processor_sums_multiple_items(
+    auth_client: Client,
+    user: User,
+    category: Category
+):
+    """Счётчик в шапке корректно суммирует количество нескольких разных товаров."""
+    cart = Cart.objects.create(user=user)
+
+    # Создаём 2 разных товара
+    product_1 = Product.objects.create(
+        name='Клавиатура', price=3000.00, category=category
+    )
+    Stock.objects.create(product=product_1, quantity=10)
+
+    product_2 = Product.objects.create(
+        name='Мышь', price=1500.00, category=category
+    )
+    Stock.objects.create(product=product_2, quantity=10)
+
+    # Кладём в корзину: 2 клавиатуры и 3 мыши (в сумме 5 шт.)
+    CartItem.objects.create(cart=cart, product=product_1, quantity=2)
+    CartItem.objects.create(cart=cart, product=product_2, quantity=3)
+
+    # Запрашиваем любую страницу (например, главную)
+    response = auth_client.get(reverse('home'))
+    assert response.status_code == HTTPStatus.OK
+
+    # Проверяем сумму: 2 + 3 = 5
+    assert response.context['cart_total_quantity'] == 5
+    assert '🛒 Корзина (5)' in response.content.decode('utf-8')
