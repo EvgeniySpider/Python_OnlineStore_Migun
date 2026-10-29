@@ -18,7 +18,7 @@ class Command(BaseCommand):
             {'name': 'Монитор LG UltraGear 27"', 'desc': 'IPS, 144Hz, 1ms, Full HD', 'price': 22500.00, 'cat': 'Электроника', 'qty': 12},
             
             # Бытовая химия
-            {'name': 'Дегтярное мыло', 'desc': 'Традиционное мыло с натуральным берёзовым дёгтем', 'price': 65.00, 'cat': 'Бытовая химия', 'qty': 45},
+            {'name': 'Дегтярное мыло', 'desc': 'Традиционное мыло с натуральным берёзовым дёгтем', 'price': 65.00, 'cat': 'Бытовая химия', 'qty': 45, 'image': 'products/tar_soap.png'},
             {'name': 'Хозяйственное мыло 72%', 'desc': 'Классическое твердое мыло, 200г', 'price': 45.00, 'cat': 'Бытовая химия', 'qty': 12},
             {'name': 'Гель для стирки Ariel 3л', 'desc': 'Универсальный концентрат для белого и цветного', 'price': 1290.00, 'cat': 'Бытовая химия', 'qty': 12},
             {'name': 'Дезодорант Axe Dark Temptation', 'desc': 'Мужской аэрозоль, 150 мл', 'price': 380.00, 'cat': 'Бытовая химия', 'qty': 20},
@@ -33,7 +33,7 @@ class Command(BaseCommand):
             {'name': 'Лапша Доширак (Говядина)', 'desc': 'Лапша быстрого приготовления, острый вкус', 'price': 70.00, 'cat': 'Пищевые продукты', 'qty': 100},
             {'name': 'Энергетический напиток Red Bull 0.25л', 'desc': 'Бодрящий напиток', 'price': 160.00, 'cat': 'Пищевые продукты', 'qty': 12},
             {'name': 'Шоколад Ritter Sport с фундуком', 'desc': 'Молочный шоколад, 100г', 'price': 145.00, 'cat': 'Пищевые продукты', 'qty': 12},
-            {'name': 'Чай зелёный Greenfield Flying Dragon', 'desc': '100 пакетиков в фольгированных конвертах', 'price': 390.00, 'cat': 'Пищевые продукты', 'qty': 12},
+            {'name': 'Чай зелёный Greenfield Flying Dragon', 'desc': '100 пакетиков в фольгированных конвертах', 'price': 390.00, 'cat': 'Пищевые продукты', 'qty': 12, 'image': 'products/greenfield_flying_dragon_100_teabags.png'},
         ]
 
         try:
@@ -55,7 +55,8 @@ class Command(BaseCommand):
                         defaults={
                             'description': item['desc'],
                             'price': item['price'],
-                            'category': category_objects[item['cat']]
+                            'category': category_objects[item['cat']],
+                            'image': item.get('image', '')
                         }
                     )
                     
