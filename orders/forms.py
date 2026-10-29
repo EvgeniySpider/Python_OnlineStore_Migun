@@ -1,15 +1,17 @@
 from django import forms
+
 from .models import Order
+
 
 class OrderModelForm(forms.ModelForm):
     class Meta:
         model = Order
         fields = (
-            'first_name',
-            'last_name',
-            'phone_number',
-            'city',
-            'street',
-            'house_number',
-            'apartment_number'
+            "first_name",
+            "last_name",
+            "phone_number",
+            "city",
+            "street",
+            "house_number",
+            "apartment_number",
         )

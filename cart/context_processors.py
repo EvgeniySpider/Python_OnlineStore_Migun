@@ -1,4 +1,5 @@
 from django.db.models import Sum
+
 from .models import CartItem
 
 
@@ -9,14 +10,13 @@ def cart(request):
     """
     if request.user.is_authenticated:
         total_quantity = (
-            CartItem.objects.filter(cart_id=request.user.id).aggregate(
-                Sum('quantity')
-            )['quantity__sum']
+            CartItem.objects.filter(cart_id=request.user.id).aggregate(Sum("quantity"))[
+                "quantity__sum"
+            ]
             or 0
         )
     else:
         # Для неавторизованных пользователей возвращаем 0
         total_quantity = 0
 
-    return {'cart_total_quantity': total_quantity}
-
+    return {"cart_total_quantity": total_quantity}
