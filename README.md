@@ -66,6 +66,11 @@ docker compose up -d --build
 docker exec -it online_store_web python manage.py createsuperuser
 ```
 
+Наполните базу данных начальными товарами (Сидер):
+```bash
+poetry run python manage.py seed_db
+```
+
 ### Вариант Б: Локальная разработка (БД в Docker, Django на хосте)
 Идеально для написания кода, прогона тестов и отладки.
 
