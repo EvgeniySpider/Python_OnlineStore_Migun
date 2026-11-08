@@ -8,12 +8,11 @@ User = get_user_model()
 
 # Create your models here.
 class Order(models.Model):
-    STATUS_CHOICES = [
-        ("created", "Создан"),
-        ("in_progress", "В обработке"),
-        ("completed", "Завершён"),
-        ("canceled", "Отменён"),
-    ]
+    class Status(models.TextChoices):
+        CREATED = "created", "Создан"
+        IN_PROGRESS = "in_progress", "В обработке"
+        COMPLETED = "completed", "Завершён"
+        CANCELED = "canceled", "Отменён"
 
     user = models.ForeignKey(
         User,
@@ -35,8 +34,8 @@ class Order(models.Model):
 
     status = models.CharField(
         max_length=20,
-        choices=STATUS_CHOICES,
-        default="created",
+        choices=Status.choices,
+        default=Status.CREATED,
         verbose_name="Статус заказа",
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")

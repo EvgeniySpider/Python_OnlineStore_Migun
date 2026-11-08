@@ -118,15 +118,18 @@ class OrderCancelView(LoginRequiredMixin, View):
         order = get_object_or_404(Order, id=order_id, user=request.user)
 
         # 2. Проверяем статус по:
-        if order.status == "in_progress":
+        if order.status == Order.Status.IN_PROGRESS:
             messages.error(
                 request,
                 f"Заказ №{order.id} уже передан в обработку и не может быть отменён.",
             )
             return redirect("order_list")
 
-        if order.status != "created":
-            messages.warning(request, f"Заказ №{order.id} нельзя отменить.")
+        if order.status != Order.Status.CREATED:
+            messages.warning(
+                request,
+                f"Заказ №{order.id} со статусом «{order.get_status_display()}» нельзя отменить.",
+            )
             return redirect("order_list")
 
         # 3. Если статус "created" — возвращаем товары на склад:
@@ -136,7 +139,7 @@ class OrderCancelView(LoginRequiredMixin, View):
             stock.save()
 
         # 4. Переводим статус в "Отменён":
-        order.status = "canceled"
+        order.status = Order.Status.CANCELED
         order.save()
 
         messages.success(
