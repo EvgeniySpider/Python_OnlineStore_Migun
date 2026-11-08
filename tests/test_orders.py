@@ -8,6 +8,7 @@ from cart.models import Cart, CartItem
 from goods.models import Stock
 from orders.forms import OrderModelForm
 from orders.models import Order, OrderItem
+from orders.services import create_order
 from users.models import User
 
 
@@ -314,3 +315,99 @@ class TestOrderCancel:
         # Данные заказа и склада не пострадали
         assert created_order.status == "created"
         assert stock.quantity == initial_stock
+
+
+def _form_data(user: User) -> dict:
+    """Валидированные данные формы заказа для пользователя."""
+    return {
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "phone_number": user.phone_number,
+        "city": user.city,
+        "street": user.street,
+        "house_number": user.house_number,
+        "apartment_number": "42",
+    }
+
+
+@pytest.mark.django_db
+class TestCreateOrderService:
+    def test_create_order_success(self, user: User, cart_item: CartItem, stock: Stock):
+        """Успешное оформление: заказ создан, склад списан, корзина очищена."""
+        initial_stock_quantity = stock.quantity
+        ordered_quantity = cart_item.quantity
+
+        order, errors = create_order(user=user, form_data=_form_data(user))
+
+        assert not errors
+        assert order is not None
+        assert order.user == user
+        assert order.status == Order.Status.CREATED
+
+        # Товар зафиксирован в заказе по цене на момент покупки
+        order_item = order.items.first()
+        assert order_item.product == cart_item.product
+        assert order_item.quantity == ordered_quantity
+        assert order_item.price == cart_item.product.price
+
+        # Склад списан
+        stock.refresh_from_db()
+        assert stock.quantity == initial_stock_quantity - ordered_quantity
+
+        # Корзина очищена
+        assert not CartItem.objects.filter(cart_id=user.id).exists()
+
+    def test_create_order_with_empty_cart(self, user: User):
+        """Пустая корзина: сервис сообщает об этом, ничего не создавая."""
+        Cart.objects.create(user=user)
+
+        order, errors = create_order(user=user, form_data=_form_data(user))
+
+        assert order is None
+        assert errors == []
+        assert not Order.objects.exists()
+
+    def test_create_order_with_no_cart_at_all(self, user: User):
+        """У пользователя вообще нет корзины — поведение как с пустой корзиной."""
+        order, errors = create_order(user=user, form_data=_form_data(user))
+
+        assert order is None
+        assert errors == []
+        assert not Order.objects.exists()
+
+    def test_create_order_with_insufficient_stock(
+        self, user: User, cart_item: CartItem, stock: Stock
+    ):
+        """Товара на складе меньше, чем в корзине — заказ не создаётся."""
+        stock.quantity = 1  # В корзине 2 шт.
+        stock.save()
+
+        order, errors = create_order(user=user, form_data=_form_data(user))
+
+        assert order is None
+        assert len(errors) == 1
+        assert "Недостаточно товара" in errors[0]
+        assert "Доступно: 1 шт." in errors[0]
+
+        # Ничего не изменилось: заказ не создан, склад и корзина целы
+        assert not Order.objects.exists()
+        stock.refresh_from_db()
+        assert stock.quantity == 1
+        assert CartItem.objects.filter(pk=cart_item.pk).exists()
+
+    def test_create_order_with_product_missing_on_stock(
+        self, user: User, cart_item: CartItem, stock: Stock
+    ):
+        """Товар есть в корзине, но записи на складе нет — заказ не создаётся."""
+        product = cart_item.product
+        Stock.objects.filter(product=product).delete()
+
+        order, errors = create_order(user=user, form_data=_form_data(user))
+
+        assert order is None
+        assert len(errors) == 1
+        assert f"Товар {product.name} отсутствует на складе." in errors[0]
+
+        # Ничего не изменилось
+        assert not Order.objects.exists()
+        assert CartItem.objects.filter(pk=cart_item.pk).exists()

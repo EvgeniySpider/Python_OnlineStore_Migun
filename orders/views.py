@@ -8,9 +8,10 @@ from django.views.generic import ListView
 
 from cart.models import CartItem
 from goods.models import Stock
-from orders.models import Order, OrderItem
+from orders.models import Order
 
 from .forms import OrderModelForm
+from .services import create_order
 
 
 class OrderCreateView(LoginRequiredMixin, View):
@@ -36,7 +37,6 @@ class OrderCreateView(LoginRequiredMixin, View):
 
         return render(request, "orders/order_create.html", context)
 
-    @method_decorator(transaction.atomic)
     def post(self, request, *args, **kwargs):
         user = request.user
         form = OrderModelForm(data=request.POST)
@@ -48,52 +48,22 @@ class OrderCreateView(LoginRequiredMixin, View):
             )
             return render(request, "orders/order_create.html", {"form": form})
 
-        cart_items = CartItem.objects.filter(cart_id=user.id).select_related("product")
+        # Бизнес-логика оформления заказа вынесена в сервис
+        # (orders/services.py), который не знает про request/response.
+        order, errors = create_order(user=user, form_data=form.cleaned_data)
 
-        if not cart_items.exists():
+        # Сервис сообщил, что корзина пуста — оформлять нечего
+        if order is None and not errors:
             return redirect("cart:cart_detail")
 
-        # ПРОВЕРКА: Сначала проверяем ВСЕ товары на складские остатки
-        for cart_item in cart_items:
-            try:
-                stock_obj = Stock.objects.get(product_id=cart_item.product_id)
-            except Stock.DoesNotExist:
-                form.add_error(
-                    None, f"Товар {cart_item.product.name} отсутствует на складе."
-                )
-                messages.error(request, "Заказ не был оформлен")
-                return render(request, "orders/order_create.html", {"form": form})
+        # Сервис вернул ошибки по складским остаткам
+        if errors:
+            for error in errors:
+                form.add_error(None, error)
+            messages.error(request, "Заказ не был оформлен")
+            return render(request, "orders/order_create.html", {"form": form})
 
-            if cart_item.quantity > stock_obj.quantity:
-                form.add_error(
-                    None,
-                    f"Недостаточно товара '{cart_item.product.name}'. Доступно: {stock_obj.quantity} шт.",
-                )
-                messages.error(request, "Заказ не был оформлен")
-                return render(request, "orders/order_create.html", {"form": form})
-
-        order = form.save(commit=False)
-        order.user = user  # Вручную указываем id, всё остальное ввёл пользователь
-        order.save()
         messages.success(request, "Заказ успешно оформлен")
-        # Списываем товары, создаем OrderItem и чистим корзину
-        for cart_item in cart_items:
-            # Уменьшаем склад
-            stock_obj = Stock.objects.get(product_id=cart_item.product_id)
-            stock_obj.quantity -= cart_item.quantity
-            stock_obj.save()
-
-            # Фиксируем товар в заказе
-            OrderItem.objects.create(
-                order=order,
-                product=cart_item.product,
-                price=cart_item.product.price,  # Фиксируем цену на момент покупки
-                quantity=cart_item.quantity,
-            )
-
-        # Очищаем корзину пользователя
-        cart_items.delete()
-
         return redirect("home")
 
 
