@@ -12,6 +12,23 @@ from orders.services import create_order
 from users.models import User
 
 
+def _form_data(user: User, apartment_number: str = "42") -> dict:
+    """Валидные данные формы заказа для пользователя.
+
+    Точка переопределения: через ключи возвращаемого словаря можно
+    подменить любое поле (например, сделать форму неполной).
+    """
+    return {
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "phone_number": user.phone_number,
+        "city": user.city,
+        "street": user.street,
+        "house_number": user.house_number,
+        "apartment_number": apartment_number,
+    }
+
+
 def test_empty_orders(auth_client: Client):
     url: str = reverse("order_list")
 
@@ -116,15 +133,7 @@ def test_confirm_order_success(
     ordered_quantity = cart_item.quantity
     expected_price = cart_item.product.price
 
-    form_data = {
-        "first_name": user.first_name,
-        "last_name": user.last_name,
-        "phone_number": user.phone_number,
-        "city": user.city,
-        "street": user.street,
-        "house_number": user.house_number,
-        "apartment_number": apartment_number,
-    }
+    form_data = _form_data(user, apartment_number=apartment_number)
 
     response = auth_client.post(url, data=form_data, follow=True)
 
@@ -172,14 +181,8 @@ class TestConfirmOrderNegativeScenarios:
     ):
 
         user = cart_item.cart.user
-        form_data = {
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "phone_number": user.phone_number,
-            "city": user.city,
-            "street": user.street,
-            "house_number": user.house_number,
-        }
+        # Берём валидную форму и удаляем одно обязательное поле
+        form_data = _form_data(user)
         del form_data[key]
 
         response = auth_client.post(self.URL, data=form_data)
@@ -197,14 +200,8 @@ class TestConfirmOrderNegativeScenarios:
         self, auth_client: Client, cart_item: CartItem
     ):
         user = cart_item.cart.user
-        form_data = {
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "phone_number": user.phone_number,
-            "city": user.city,
-            "street": user.street,
-            "house_number": user.house_number,
-        }
+        form_data = _form_data(user)
+
         # В корзине 2 шт, а на складе оставляем только 1 шт.
         stock = Stock.objects.get(pk=cart_item.product.id)
         stock.quantity = 1
@@ -315,19 +312,6 @@ class TestOrderCancel:
         # Данные заказа и склада не пострадали
         assert created_order.status == "created"
         assert stock.quantity == initial_stock
-
-
-def _form_data(user: User) -> dict:
-    """Валидированные данные формы заказа для пользователя."""
-    return {
-        "first_name": user.first_name,
-        "last_name": user.last_name,
-        "phone_number": user.phone_number,
-        "city": user.city,
-        "street": user.street,
-        "house_number": user.house_number,
-        "apartment_number": "42",
-    }
 
 
 @pytest.mark.django_db
