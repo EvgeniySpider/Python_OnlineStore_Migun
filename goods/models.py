@@ -3,6 +3,13 @@ from django.db import models
 
 # Create your models here.
 class Category(models.Model):
+    """Категория товаров каталога (например: 'Электроника', 'Бытовая химия').
+
+    Служит для логической группировки продуктов. Связана с Product
+    через ForeignKey с поведением on_delete=PROTECT (нельзя удалить
+    категорию, пока в ней есть товары).
+    """
+
     name = models.CharField(max_length=255, verbose_name="Название категории")
 
     class Meta:
@@ -14,6 +21,13 @@ class Category(models.Model):
 
 
 class Product(models.Model):
+    """Товар в каталоге интернет-магазина.
+
+    Хранит публичную витринную информацию: наименование, описание,
+    текущую цену, изображение и ссылку на категорию. Физический остаток
+    этого товара хранится отдельно в связанной модели Stock.
+    """
+
     name = models.CharField(max_length=255, verbose_name="Название товара")
     description = models.TextField(blank=True, null=True, verbose_name="Описание")
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Цена")
@@ -36,6 +50,13 @@ class Product(models.Model):
 
 
 class Stock(models.Model):
+    """Складской остаток конкретного товара.
+
+    Связан с Product связью One-to-One (первичный ключ равен id товара).
+    Хранит текущее доступное для покупки количество единиц (quantity).
+    Именно эта строка блокируется через select_for_update() при оформлении заказа.
+    """
+
     product = models.OneToOneField(
         Product,
         on_delete=models.CASCADE,

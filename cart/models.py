@@ -7,6 +7,13 @@ User = get_user_model()
 
 
 class Cart(models.Model):
+    """Корзина покупателя.
+
+    Имеет связь One-to-One с пользователем (User), где id пользователя
+    является первичным ключом корзины (primary_key=True).
+    Выступает контейнером для элементов корзины (CartItem).
+    """
+
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
@@ -25,6 +32,13 @@ class Cart(models.Model):
 
 
 class CartItem(models.Model):
+    """Позиция (конкретный товар и его количество) в корзине пользователя.
+
+    Связывает Cart и Product. Имеет ограничение UniqueConstraint('cart', 'product'),
+    гарантирующее, что один и тот же товар не будет дублироваться разными строками,
+    а будет увеличивать поле quantity.
+    """
+
     cart = models.ForeignKey(
         Cart,
         on_delete=models.CASCADE,

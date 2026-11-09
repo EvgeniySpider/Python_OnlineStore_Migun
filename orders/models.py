@@ -6,8 +6,14 @@ from goods.models import Product
 User = get_user_model()
 
 
-# Create your models here.
 class Order(models.Model):
+    """Оформленный заказ покупателя.
+
+    Хранит статус жизненного цикла заказа (Status: создан, в обработке, завершён, отменён),
+    дату создания, а также снимок контактных данных и адреса доставки покупателя
+    на момент оформления (чтобы изменения в профиле User не меняли историю прошлых заказов).
+    """
+
     class Status(models.TextChoices):
         CREATED = "created", "Создан"
         IN_PROGRESS = "in_progress", "В обработке"
@@ -49,6 +55,13 @@ class Order(models.Model):
 
 
 class OrderItem(models.Model):
+    """Строка оформленного заказа (купленный товар).
+
+    Хранит ссылку на заказанный Product, количество купленных штук (quantity)
+    и поле price (снимок цены на момент покупки, защищающий чек от последующих
+    изменений цен в каталоге Product).
+    """
+
     order = models.ForeignKey(
         Order,
         on_delete=models.CASCADE,
