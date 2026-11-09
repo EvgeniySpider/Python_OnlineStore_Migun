@@ -19,18 +19,9 @@ User = get_user_model()
 def create_order(user, form_data: dict) -> tuple[Order | None, list[str]]:
     """Оформляет заказ на основе корзины пользователя.
 
-    Функция ничего не знает про request/response (POST/GET, редиректы,
-    messages)
-
-    Args:
-        user: пользователь, от имени которого оформляется заказ.
-        form_data: валидированные данные формы заказа (form.cleaned_data).
-
-    Returns:
-        Кортеж (order, errors):
-        - (Order, [])      — заказ успешно создан, корзина очищена;
-        - (None, [])       — корзина пользователя пуста, оформлять нечего;
-        - (None, errors)   — заказ не создан, errors — список текстов ошибок.
+    Функция ничего не знает про request/response (POST/GET, редиректы, messages).
+    Все изменения остатков выполняются с блокировкой строк (select_for_update)
+    для предотвращения состояния гонки (Race Condition).
     """
     cart_items = CartItem.objects.filter(cart_id=user.id).select_related("product")
 
@@ -38,11 +29,17 @@ def create_order(user, form_data: dict) -> tuple[Order | None, list[str]]:
     if not cart_items.exists():
         return None, []
 
-    # ПРОВЕРКА: Сначала проверяем ВСЕ товары на складские остатки
     errors: list[str] = []
+    # Сохраняем заблокированные объекты Stock, чтобы не делать повторные запросы к БД
+    locked_stocks: dict[int, Stock] = {}
+
+    # Блокируем строки остатков через select_for_update()
     for cart_item in cart_items:
         try:
-            stock_obj = Stock.objects.get(product_id=cart_item.product_id)
+            stock_obj = Stock.objects.select_for_update().get(
+                product_id=cart_item.product_id
+            )
+            locked_stocks[cart_item.product_id] = stock_obj
         except Stock.DoesNotExist:
             errors.append(f"Товар {cart_item.product.name} отсутствует на складе.")
             continue
@@ -60,10 +57,9 @@ def create_order(user, form_data: dict) -> tuple[Order | None, list[str]]:
 
     # Списываем товары, создаём OrderItem и чистим корзину
     for cart_item in cart_items:
-        # Уменьшаем склад
-        stock_obj = Stock.objects.get(product_id=cart_item.product_id)
+        stock_obj = locked_stocks[cart_item.product_id]
         stock_obj.quantity -= cart_item.quantity
-        stock_obj.save()
+        stock_obj.save(update_fields=["quantity"])
 
         # Фиксируем товар в заказе
         OrderItem.objects.create(
