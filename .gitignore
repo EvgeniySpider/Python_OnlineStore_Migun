@@ -14,3 +14,6 @@ __pycache__/
 # Системные файлы
 .DS_Store
 log.log
+
+# Статика
+static/
