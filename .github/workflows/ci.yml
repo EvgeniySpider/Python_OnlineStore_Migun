@@ -27,13 +27,15 @@ jobs:
         run: docker compose build
 
       # 3. Быстрая проверка линтером и форматтером (Fail-Fast: падает за секунду при косяках стиля)
+      #    --no-cache: не писать .ruff_cache в /app — монтирование тома read-only для others (UID в контейнере != UID хоста)
       - name: Run Ruff
-        run: docker compose run --rm web sh -c "ruff check . && ruff format --check ."
+        run: docker compose run --rm web sh -c "ruff check --no-cache . && ruff format --check --no-cache ."
 
       # 4. Поднимаем базу данных только тогда, когда код проверен на стиль
       - name: Start Database
         run: docker compose up -d db
 
       # 5. Прогон тестов на живой базе
+      #    -p no:cacheprovider: не создавать .pytest_cache в /app — там нет прав на запись из-за монтирования тома
       - name: Run Pytest
-        run: docker compose run --rm web pytest
+        run: docker compose run --rm web pytest -p no:cacheprovider
