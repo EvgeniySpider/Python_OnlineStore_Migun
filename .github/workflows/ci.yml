@@ -1,0 +1,39 @@
+name: Django CI Pipeline
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  run-tests:
+    name: Lint and Test in Docker
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 1. Создаем тестовый .env для Django и Docker Compose
+      - name: Create .env file for CI
+        run: |
+          echo "SECRET_KEY=django-insecure-ci-secret-key-for-tests" > .env
+          echo "DEBUG=True" >> .env
+          echo "ALLOWED_HOSTS=127.0.0.1,localhost,0.0.0.0,web" >> .env
+
+      # 2. Собираем образ (цель: development со всеми dev-зависимостями)
+      - name: Build Docker containers
+        run: docker compose build
+
+      # 3. Быстрая проверка линтером и форматтером (Fail-Fast: падает за секунду при косяках стиля)
+      - name: Run Ruff
+        run: docker compose run --rm web sh -c "ruff check . && ruff format --check ."
+
+      # 4. Поднимаем базу данных только тогда, когда код проверен на стиль
+      - name: Start Database
+        run: docker compose up -d db
+
+      # 5. Прогон тестов на живой базе
+      - name: Run Pytest
+        run: docker compose run --rm web pytest
